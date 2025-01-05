@@ -1,0 +1,19 @@
+name: release-notification-action
+
+on:
+  [deployment_status]
+
+jobs:
+  pr-action-body:
+    if: ${{ github.event_name == 'deployment_status' && github.event.deployment_status.state == 'success' }}
+    runs-on: [ubuntu-latest]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: release-notification-action
+        uses: ./
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          extractionPoint: '## 리뷰 요약 정보'
+          slackWebHookURL: ${{ secrets.SLACK_WEBHOOK_URL }}

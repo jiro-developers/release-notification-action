@@ -7,6 +7,7 @@ import { getGithubContext } from './getGithubContext';
 /**
  * PR 정보를 가져옵니다.
  * @param token Github Token
+ * @param pullRequestNumber
  * @returns PR 정보 Promise<RestEndpointMethodTypes["pulls"]["get"]["response"]>
  * **/
 const getPullRequestInfo = async (

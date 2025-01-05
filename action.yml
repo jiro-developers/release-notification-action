@@ -1,0 +1,21 @@
+name: "release-notification-action"
+description: "release-notification-action"
+
+branding:
+  icon: "activity"
+  color: "blue"
+
+inputs:
+  token:
+    description: "GitHub token"
+    required: true
+  extractionPoint:
+    description: "본문을 추출할 기점 해당 기점부터 최하단 정보를 전부 긁어옵니다. '## 리뷰대기'"
+    required: true
+  slackWebHookURL:
+    description: "slack webhook url"
+    required: true
+
+runs:
+  using: "node16"
+  main: "dist/index.js"

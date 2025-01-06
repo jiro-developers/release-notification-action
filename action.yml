@@ -18,6 +18,9 @@ inputs:
   slackWebhookURL:
     description: "slack webhook url"
     required: true
+  specificBranchPattern:
+    description: "해당 브랜치에서만 액션에 대한 로직을 실행합니다. 만약 값을 넘기지 않는다면 모든 브랜치에서 실행됩니다. glob 패턴을 사용합니다 ex) 'release/*' / {main,develop,feature/*} "
+    required: false
 
 runs:
   using: "node16"

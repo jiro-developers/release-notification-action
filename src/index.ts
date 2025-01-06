@@ -1,8 +1,10 @@
 import * as core from '@actions/core';
 import { githubToSlack } from '@atomist/slack-messages';
+import { minimatch } from 'minimatch';
 
 import { ACTION_REQUIRED_INPUT_KEY } from './constants/common';
 import type { GithubDeploymentStatusState } from './types';
+import { extractBranchName } from './utils/extractBranchName';
 import { extractSection } from './utils/extractSection';
 import { getGithubContext } from './utils/github/getGithubContext';
 import { getPullRequestInfo } from './utils/github/getPullRequestInfo';
@@ -17,6 +19,7 @@ const run = async (): Promise<void> => {
     const {
       issue: { number, repo },
       payload,
+      ref,
     } = getGithubContext();
 
     const deploymentStatus = payload.deployment_status?.state as GithubDeploymentStatusState;
@@ -32,6 +35,16 @@ const run = async (): Promise<void> => {
     const extractionStartPoint = core.getInput('extractionStartPoint');
     const extractionEndPoint = core.getInput('extractionEndPoint');
     const slackWebhookURL = core.getInput('slackWebhookURL');
+    const specificBranchPattern = core.getInput('specificBranchPattern');
+
+    const isMatchedBranch = minimatch(extractBranchName(ref), specificBranchPattern, {
+      nobrace: false,
+    });
+
+    // specificBranchPattern 패턴이 들어왔고, 해당 패턴에 매칭되지 않는 브랜치일 경우 실행시키지 않습니다.
+    if (specificBranchPattern && !isMatchedBranch) {
+      return;
+    }
 
     // [ERROR] ACTION_REQUIRED_INPUT_KEY 에 해당하는 인풋이 없을 경우 에러를 발생시킵니다.
     if (!token || !extractionStartPoint || !slackWebhookURL) {

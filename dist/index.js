@@ -32290,8 +32290,9 @@ const extractSection = (input, extractionStartPoint, extractionEndPoint) => {
     // 시작점을 찾기 위해 정규식 사용
     const startRegex = new RegExp(`(${extractionStartPoint})`, 'g');
     const startMatch = startRegex.exec(input);
+    // 시작점을 찾지 못한 경우 null 반환
     if (!startMatch) {
-        return null; // 시작점을 찾지 못한 경우
+        return null;
     }
     const startIndex = startMatch.index;
     // 종료점이 제공되지 않은 경우, 시작점부터 문자열 끝까지 반환
@@ -32301,8 +32302,9 @@ const extractSection = (input, extractionStartPoint, extractionEndPoint) => {
     // 종료점을 찾기 위해 정규식 사용
     const endRegex = new RegExp(`(${extractionEndPoint})`, 'g');
     const endMatch = endRegex.exec(input.slice(startIndex));
+    // 종료점을 찾지 못한 경우 null 반환
     if (!endMatch) {
-        return null; // 종료점을 찾지 못한 경우
+        return null;
     }
     const endIndex = startIndex + endMatch.index;
     return input.slice(startIndex, endIndex);
@@ -32520,6 +32522,13 @@ const run = async () => {
         const { title, body, html_url, head, user, assignees, base: { ref: baseBranchName }, } = pullRequestInfo;
         const repositoryName = repo ?? head.repo?.name;
         const pullRequestOwner = assignees?.map((assignee) => assignee.login).join(', ') ?? user.login;
+        const pullRequestInformation = {
+            title: title,
+            url: html_url,
+            number: number ?? pullRequestNumber,
+            owner: pullRequestOwner,
+            baseBranchName: baseBranchName,
+        };
         // [INFO] 배포 상태가 success가 아닐 경우 배포 실패 메시지를 보내고 종료합니다.
         if (deploymentStatus !== 'success') {
             core.info(`Deployment is not success. ${deploymentStatus}`);
@@ -32527,13 +32536,7 @@ const run = async () => {
                 webhookUrl: slackWebhookURL,
                 payload: buildSlackMessage({
                     repositoryName,
-                    pullRequest: {
-                        title: title,
-                        url: html_url,
-                        number: number ?? pullRequestNumber,
-                        owner: pullRequestOwner,
-                        baseBranchName: baseBranchName,
-                    },
+                    pullRequest: pullRequestInformation,
                     deployStatus: 'fail',
                 }),
             });
@@ -32557,12 +32560,8 @@ const run = async () => {
             payload: buildSlackMessage({
                 repositoryName,
                 pullRequest: {
-                    title: title,
-                    url: html_url,
-                    number: number ?? pullRequestNumber,
+                    ...pullRequestInformation,
                     body: (0,slack_messages.githubToSlack)(extractedSection),
-                    owner: pullRequestOwner,
-                    baseBranchName: baseBranchName,
                 },
             }),
         });

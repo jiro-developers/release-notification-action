@@ -8,6 +8,7 @@ interface SendSlackMessageProps {
 }
 const sendSlackMessage = async ({ webhookUrl, payload }: SendSlackMessageProps) => {
   core.info(`Sending a message to Slack...${webhookUrl}`);
+
   const response = await fetch(webhookUrl, {
     method: 'POST',
     headers: {

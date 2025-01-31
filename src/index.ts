@@ -20,10 +20,10 @@ const run = async (): Promise<void> => {
     // [INFO] 해당 워크플로우에 필요한 인풋을 가져옵니다.
     const token = core.getInput('token');
     const extractionPoint = core.getInput('extractionPoint');
-    const slackWebHookURL = core.getInput('slackWebHookURL');
+    const slackWebhookURL = core.getInput('slackWebhookURL');
 
     // [ERROR] ACTION_REQUIRED_INPUT_KEY 에 해당하는 인풋이 없을 경우 에러를 발생시킵니다.
-    if (!token || !extractionPoint || !slackWebHookURL) {
+    if (!token || !extractionPoint || !slackWebhookURL) {
       const missingInputs = ACTION_REQUIRED_INPUT_KEY.filter((input) => !core.getInput(input));
       core.error(`Missing required inputs: ${missingInputs.join(', ')}`);
       return;
@@ -73,7 +73,7 @@ const run = async (): Promise<void> => {
 
     // [INFO] Slack 메시지를 보냅니다.
     await sendSlackMessage({
-      webhookUrl: slackWebHookURL,
+      webhookUrl: slackWebhookURL,
       payload: buildSlackMessage({
         repositoryName,
         pullRequestInformation: {

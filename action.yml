@@ -12,7 +12,7 @@ inputs:
   extractionPoint:
     description: "본문을 추출할 기점 해당 기점부터 최하단 정보를 전부 긁어옵니다. '## 리뷰대기'"
     required: true
-  slackWebHookURL:
+  slackWebhookURL:
     description: "slack webhook url"
     required: true
 

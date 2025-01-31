@@ -17,7 +17,7 @@ const getPullRequestFromCommit = async (token: string) => {
 
   try {
     // 커밋을 포함하는 PR을 찾기 위해 커밋에서 PR을 조회
-    const { data: prs } = await octokit.rest.repos.listPullRequestsAssociatedWithCommit({
+    const { data: prList } = await octokit.rest.repos.listPullRequestsAssociatedWithCommit({
       owner,
       repo,
       commit_sha: sha,

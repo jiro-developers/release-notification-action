@@ -6,7 +6,7 @@ import { getGithubContext } from './getGithubContext';
 /**
  * 커밋 SHA를 사용하여 API 호출 한 뒤 PR을 가져옵니다.
  * @param token Github Token
- * @returns PR 번호
+ * @returns PR 정보
  */
 const getPullRequestFromCommit = async (token: string) => {
   const octokit = github.getOctokit(token);
@@ -23,8 +23,8 @@ const getPullRequestFromCommit = async (token: string) => {
       commit_sha: sha,
     });
 
-    if (prs.length > 0) {
-      return prs[0].number;
+    if (prList.length > 0) {
+      return prList[0];
     }
 
     core.info('No associated PR found for this commit.');

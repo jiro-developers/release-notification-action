@@ -56,6 +56,28 @@ const run = async (): Promise<void> => {
     const repositoryName = repo ?? head.repo?.name;
     const pullRequestOwner = assignees?.map((assignee) => assignee.login).join(', ') ?? user.login;
 
+    // [INFO] 배포 상태가 success가 아닐 경우 배포 실패 메시지를 보내고 종료합니다.
+    if (deploymentStatus !== 'success') {
+      core.info(`Deployment is not success. ${deploymentStatus}`);
+
+      await sendSlackMessage({
+        webhookUrl: slackWebhookURL,
+        payload: buildSlackMessage({
+          repositoryName,
+          pullRequest: {
+            title: title,
+            url: html_url,
+            number: number ?? pullRequestNumber,
+            owner: pullRequestOwner,
+            baseBranchName: baseBranchName,
+          },
+          deployStatus: 'fail',
+        }),
+      });
+
+      return;
+    }
+
     // [ERROR] PR의 body가 없을 경우 에러를 발생시킵니다.
     if (!body) {
       core.error('No body provided.');
@@ -71,18 +93,18 @@ const run = async (): Promise<void> => {
       return;
     }
 
-    // [INFO] Slack 메시지를 보냅니다.
+    // [INFO] Slack 성공 메시지를 보냅니다.
     await sendSlackMessage({
       webhookUrl: slackWebhookURL,
       payload: buildSlackMessage({
         repositoryName,
-        pullRequestInformation: {
-          pullRequestTitle: title,
-          pullRequestURL: html_url,
-          pullRequestNumber: number ?? pullRequestNumber,
-          pullRequestBody: githubToSlack(extractedSection),
-          pullRequestOwner: pullRequestOwner,
-          pullRequestBaseBranchName: baseBranchName,
+        pullRequest: {
+          title: title,
+          url: html_url,
+          number: number ?? pullRequestNumber,
+          body: githubToSlack(extractedSection),
+          owner: pullRequestOwner,
+          baseBranchName: baseBranchName,
         },
       }),
     });

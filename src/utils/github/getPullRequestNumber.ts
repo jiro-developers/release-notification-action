@@ -29,13 +29,13 @@ const getPullRequestNumber = async (token: string): Promise<number> => {
     return pullRequestNumberFromContext;
   }
 
-  const { data: pullRequests } = await octokit.rest.pulls.list({
+  const { data: pullRequestList } = await octokit.rest.pulls.list({
     owner,
     repo,
     state: 'all',
   });
 
-  const matchingPR = pullRequests.find((pr) => pr.head.sha === sha);
+  const matchingPR = pullRequestList.find((pr) => pr.head.sha === sha);
 
   if (matchingPR) {
     core.info(`Found PR number: ${matchingPR.number} using head SHA.`);
@@ -43,7 +43,7 @@ const getPullRequestNumber = async (token: string): Promise<number> => {
   }
 
   core.info(`No matching PR found with head SHA. Falling back to commit API.`);
-  const pullRequestNumberFromCommit = await getPullRequestFromCommit(token);
+  const pullRequestNumberFromCommit = await getPullRequestFromCommit(token).then((pr) => pr?.number);
 
   if (!pullRequestNumberFromCommit) {
     throw new Error(`Unable to find PR associated with commit SHA: ${sha}`);

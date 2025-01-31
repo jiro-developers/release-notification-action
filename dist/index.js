@@ -32275,6 +32275,14 @@ const ACTION_REQUIRED_INPUT_KEY = [
     'extractionPoint', // 본문을 추출할 기점 해당 기점 문자열 ex) "## 리뷰 요약 정보"
     'slackWebhookURL', // Slack Webhook URL
 ];
+/**
+ * Slack 메시지의 최대 길이입니다.
+ * @see https://api.slack.com/methods/chat.postMessage
+ * ----------------------------------------------------
+ * 추후 truncating 처리를 한다면 제거 될 상수입니다.
+ * @see https://api.slack.com/methods/chat.postMessage#truncating
+ * **/
+const MAX_LENGTH_OF_SLACK_MESSAGE = 4_000;
 
 
 ;// CONCATENATED MODULE: ./src/utils/extractSection.ts
@@ -32428,6 +32436,7 @@ const getPullRequestNumber = async (token) => {
 
 
 ;// CONCATENATED MODULE: ./src/utils/slack/buildSlackMessage.ts
+
 const buildSlackMessage = ({ pullRequest: { title, url, number, body, owner, baseBranchName }, repositoryName, deployStatus = 'success', }) => {
     const deployStatusMessage = deployStatus === 'fail' ? '실패' : '완료';
     const titleMessage = `${repositoryName}에서 배포가 ${deployStatusMessage}되었습니다.`;
@@ -32447,7 +32456,7 @@ const buildSlackMessage = ({ pullRequest: { title, url, number, body, owner, bas
     if (deployStatus === 'success' && body) {
         blocks.push({ type: 'divider' }, {
             type: 'section',
-            text: { type: 'mrkdwn', text: body.slice(0, 4_000) },
+            text: { type: 'mrkdwn', text: body.slice(0, MAX_LENGTH_OF_SLACK_MESSAGE) },
         });
     }
     return {

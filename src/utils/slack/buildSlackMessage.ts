@@ -1,5 +1,7 @@
 import type { DividerBlock, SectionBlock, TextObject } from '@atomist/slack-messages/lib/SlackMessages';
 
+import { MAX_LENGTH_OF_SLACK_MESSAGE } from '../../constants/common';
+
 type Blocks = SectionBlock | DividerBlock;
 
 type SlackMessagePayload = {
@@ -50,7 +52,7 @@ const buildSlackMessage = ({
       { type: 'divider' },
       {
         type: 'section',
-        text: { type: 'mrkdwn', text: body.slice(0, 4_000) },
+        text: { type: 'mrkdwn', text: body.slice(0, MAX_LENGTH_OF_SLACK_MESSAGE) },
       }
     );
   }

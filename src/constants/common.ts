@@ -7,4 +7,13 @@ const ACTION_REQUIRED_INPUT_KEY = [
   'slackWebhookURL', // Slack Webhook URL
 ] as const;
 
-export { ACTION_REQUIRED_INPUT_KEY };
+/**
+ * Slack 메시지의 최대 길이입니다.
+ * @see https://api.slack.com/methods/chat.postMessage
+ * ----------------------------------------------------
+ * 추후 truncating 처리를 한다면 제거 될 상수입니다.
+ * @see https://api.slack.com/methods/chat.postMessage#truncating
+ * **/
+const MAX_LENGTH_OF_SLACK_MESSAGE = 4_000;
+
+export { ACTION_REQUIRED_INPUT_KEY, MAX_LENGTH_OF_SLACK_MESSAGE };

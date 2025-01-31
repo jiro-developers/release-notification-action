@@ -80,7 +80,7 @@ const run = async (): Promise<void> => {
       core.info(`Deployment is not success. ${deploymentStatus}`);
 
       await sendSlackMessage({
-        webhookUrl: slackWebhookURL,
+        webhookURL: slackWebhookURL,
         payload: buildSlackMessage({
           repositoryName,
           pullRequest: pullRequestInformation,
@@ -108,7 +108,7 @@ const run = async (): Promise<void> => {
 
     // [INFO] Slack 성공 메시지를 보냅니다.
     await sendSlackMessage({
-      webhookUrl: slackWebhookURL,
+      webhookURL: slackWebhookURL,
       payload: buildSlackMessage({
         repositoryName,
         pullRequest: {

@@ -32461,9 +32461,9 @@ const buildSlackMessage = ({ pullRequest: { title, url, number, body, owner, bas
 
 ;// CONCATENATED MODULE: ./src/utils/slack/sendSlackMessage.ts
 
-const sendSlackMessage = async ({ webhookUrl, payload }) => {
-    core.info(`Sending a message to Slack...${webhookUrl}`);
-    const response = await fetch(webhookUrl, {
+const sendSlackMessage = async ({ webhookURL, payload }) => {
+    core.info(`Sending a message to Slack...${webhookURL}`);
+    const response = await fetch(webhookURL, {
         method: 'POST',
         headers: {
             'content-type': 'application/json',
@@ -32533,7 +32533,7 @@ const run = async () => {
         if (deploymentStatus !== 'success') {
             core.info(`Deployment is not success. ${deploymentStatus}`);
             await sendSlackMessage({
-                webhookUrl: slackWebhookURL,
+                webhookURL: slackWebhookURL,
                 payload: buildSlackMessage({
                     repositoryName,
                     pullRequest: pullRequestInformation,
@@ -32556,7 +32556,7 @@ const run = async () => {
         }
         // [INFO] Slack 성공 메시지를 보냅니다.
         await sendSlackMessage({
-            webhookUrl: slackWebhookURL,
+            webhookURL: slackWebhookURL,
             payload: buildSlackMessage({
                 repositoryName,
                 pullRequest: {

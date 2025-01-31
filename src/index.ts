@@ -2,6 +2,7 @@ import * as core from '@actions/core';
 import { githubToSlack } from '@atomist/slack-messages';
 
 import { ACTION_REQUIRED_INPUT_KEY } from './constants/common';
+import type { GithubDeploymentStatusState } from './types';
 import { extractSection } from './utils/extractSection';
 import { getGithubContext } from './utils/github/getGithubContext';
 import { getPullRequestInfo } from './utils/github/getPullRequestInfo';
@@ -15,15 +16,25 @@ const run = async (): Promise<void> => {
 
     const {
       issue: { number, repo },
+      payload,
     } = getGithubContext();
+
+    const deploymentStatus = payload.deployment_status?.state as GithubDeploymentStatusState;
+
+    // [INFO] 배포 상태가 pending 일 경우 종료합니다.
+    if (deploymentStatus === 'pending') {
+      core.info(`Deployment is pending. ${deploymentStatus}`);
+      return;
+    }
 
     // [INFO] 해당 워크플로우에 필요한 인풋을 가져옵니다.
     const token = core.getInput('token');
-    const extractionPoint = core.getInput('extractionPoint');
+    const extractionStartPoint = core.getInput('extractionStartPoint');
+    const extractionEndPoint = core.getInput('extractionEndPoint');
     const slackWebhookURL = core.getInput('slackWebhookURL');
 
     // [ERROR] ACTION_REQUIRED_INPUT_KEY 에 해당하는 인풋이 없을 경우 에러를 발생시킵니다.
-    if (!token || !extractionPoint || !slackWebhookURL) {
+    if (!token || !extractionStartPoint || !slackWebhookURL) {
       const missingInputs = ACTION_REQUIRED_INPUT_KEY.filter((input) => !core.getInput(input));
       core.error(`Missing required inputs: ${missingInputs.join(', ')}`);
       return;
@@ -85,7 +96,7 @@ const run = async (): Promise<void> => {
     }
 
     // [INFO] PR의 body에서 divideSection에 해당하는 섹션을 추출합니다.
-    const extractedSection = extractSection(body, extractionPoint);
+    const extractedSection = extractSection(body, extractionStartPoint, extractionEndPoint);
 
     // [ERROR] 추출된 섹션이 없을 경우 에러를 발생시킵니다.
     if (!extractedSection) {

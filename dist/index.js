@@ -32273,7 +32273,7 @@ var slack_messages = __nccwpck_require__(3781);
 const ACTION_REQUIRED_INPUT_KEY = [
     'token', // GitHub Token
     'extractionPoint', // 본문을 추출할 기점 해당 기점 문자열 ex) "## 리뷰 요약 정보"
-    'slackWebHookURL', // Slack WebHook URL
+    'slackWebhookURL', // Slack Webhook URL
 ];
 
 
@@ -32282,11 +32282,30 @@ const ACTION_REQUIRED_INPUT_KEY = [
  * @name extractSection
  * @description 정규식을 사용하여 특정 섹션을 추출하는 함수
  * @param input - 추출할 섹션을 포함한 전체 문자열
- * @param extractionPoint - 본문을 추출할 기점 해당 기점 문자열 ex) "## 리뷰 요약 정보"
+ * @param extractionStartPoint - 본문을 추출할 기점 해당 기점 문자열 ex) "## 리뷰 요약 정보"
+ * @param extractionEndPoint - 본문을 추출할 종점 해당 종점 문자열 ex) "## 리뷰 요약 정보"
+ * @returns 추출된 섹션 문자열 또는 null (섹션을 찾지 못한 경우)
  * **/
-const extractSection = (input, extractionPoint) => {
-    const startIndex = input.indexOf(extractionPoint);
-    return startIndex !== -1 ? input.slice(startIndex) : null;
+const extractSection = (input, extractionStartPoint, extractionEndPoint) => {
+    // 시작점을 찾기 위해 정규식 사용
+    const startRegex = new RegExp(`(${extractionStartPoint})`, 'g');
+    const startMatch = startRegex.exec(input);
+    if (!startMatch) {
+        return null; // 시작점을 찾지 못한 경우
+    }
+    const startIndex = startMatch.index;
+    // 종료점이 제공되지 않은 경우, 시작점부터 문자열 끝까지 반환
+    if (!extractionEndPoint) {
+        return input.slice(startIndex);
+    }
+    // 종료점을 찾기 위해 정규식 사용
+    const endRegex = new RegExp(`(${extractionEndPoint})`, 'g');
+    const endMatch = endRegex.exec(input.slice(startIndex));
+    if (!endMatch) {
+        return null; // 종료점을 찾지 못한 경우
+    }
+    const endIndex = startIndex + endMatch.index;
+    return input.slice(startIndex, endIndex);
 };
 
 
@@ -32308,6 +32327,7 @@ const getGithubContext = () => github.context;
 /**
  * PR 정보를 가져옵니다.
  * @param token Github Token
+ * @param pullRequestNumber
  * @returns PR 정보 Promise<RestEndpointMethodTypes["pulls"]["get"]["response"]>
  * **/
 const getPullRequestInfo = async (token, pullRequestNumber) => {
@@ -32337,20 +32357,20 @@ const getPullRequestInfo = async (token, pullRequestNumber) => {
 /**
  * 커밋 SHA를 사용하여 API 호출 한 뒤 PR을 가져옵니다.
  * @param token Github Token
- * @returns PR 번호
+ * @returns PR 정보
  */
 const getPullRequestFromCommit = async (token) => {
     const octokit = github.getOctokit(token);
     const { sha, issue: { owner, repo }, } = getGithubContext();
     try {
         // 커밋을 포함하는 PR을 찾기 위해 커밋에서 PR을 조회
-        const { data: prs } = await octokit.rest.repos.listPullRequestsAssociatedWithCommit({
+        const { data: prList } = await octokit.rest.repos.listPullRequestsAssociatedWithCommit({
             owner,
             repo,
             commit_sha: sha,
         });
-        if (prs.length > 0) {
-            return prs[0].number;
+        if (prList.length > 0) {
+            return prList[0];
         }
         core.info('No associated PR found for this commit.');
         return null;
@@ -32385,18 +32405,18 @@ const getPullRequestNumber = async (token) => {
         core.info(`Found PR number: ${pullRequestNumberFromContext} from context.`);
         return pullRequestNumberFromContext;
     }
-    const { data: pullRequests } = await octokit.rest.pulls.list({
+    const { data: pullRequestList } = await octokit.rest.pulls.list({
         owner,
         repo,
         state: 'all',
     });
-    const matchingPR = pullRequests.find((pr) => pr.head.sha === sha);
+    const matchingPR = pullRequestList.find((pr) => pr.head.sha === sha);
     if (matchingPR) {
         core.info(`Found PR number: ${matchingPR.number} using head SHA.`);
         return matchingPR.number;
     }
     core.info(`No matching PR found with head SHA. Falling back to commit API.`);
-    const pullRequestNumberFromCommit = await getPullRequestFromCommit(token);
+    const pullRequestNumberFromCommit = await getPullRequestFromCommit(token).then((pr) => pr?.number);
     if (!pullRequestNumberFromCommit) {
         throw new Error(`Unable to find PR associated with commit SHA: ${sha}`);
     }
@@ -32406,29 +32426,33 @@ const getPullRequestNumber = async (token) => {
 
 
 ;// CONCATENATED MODULE: ./src/utils/slack/buildSlackMessage.ts
-const buildSlackMessage = ({ pullRequestInformation: { pullRequestTitle, pullRequestURL, pullRequestNumber, pullRequestBody, pullRequestOwner, pullRequestBaseBranchName, }, repositoryName, }) => {
+const buildSlackMessage = ({ pullRequest: { title, url, number, body, owner, baseBranchName }, repositoryName, deployStatus = 'success', }) => {
+    const deployStatusMessage = deployStatus === 'fail' ? '실패' : '완료';
+    const titleMessage = `${repositoryName}에서 배포가 ${deployStatusMessage}되었습니다.`;
     const fields = [
-        { type: 'mrkdwn', text: `*PR 담당자*:\n\n${pullRequestOwner}` },
-        { type: 'mrkdwn', text: `*merge 된 브랜치 *:\n\n${pullRequestBaseBranchName}` },
-        { type: 'mrkdwn', text: `*PR*:\n\n<${pullRequestURL}|${pullRequestTitle} - #${pullRequestNumber}>` },
+        { type: 'mrkdwn', text: `*PR 담당자*:\n\n${owner}` },
+        { type: 'mrkdwn', text: `*merge 된 브랜치*:\n\n${baseBranchName}` },
+        { type: 'mrkdwn', text: `*PR*:\n\n<${url}|${title} - #${number}>` },
     ];
-    const titleMessage = `${repositoryName}에서 새롭게 배포가 완료되었습니다.`;
+    const blocks = [
+        {
+            type: 'section',
+            text: { type: 'mrkdwn', text: titleMessage },
+            fields,
+        },
+    ];
+    // PR의 body가 존재하고 deployStatus 가 success 인 경우 body를 추가합니다.
+    if (deployStatus === 'success' && body) {
+        blocks.push({ type: 'divider' }, {
+            type: 'section',
+            text: { type: 'mrkdwn', text: body.slice(0, 4_000) },
+        });
+    }
     return {
-        text: titleMessage,
         username: 'ReleaseNotesBot',
         icon_emoji: ':dropshot:',
-        blocks: [
-            {
-                type: 'section',
-                text: { type: 'mrkdwn', text: `*${titleMessage}*` },
-                fields,
-            },
-            { type: 'divider' },
-            {
-                type: 'section',
-                text: { type: 'mrkdwn', text: pullRequestBody },
-            },
-        ],
+        text: titleMessage,
+        blocks: blocks,
     };
 };
 
@@ -32464,13 +32488,20 @@ const sendSlackMessage = async ({ webhookUrl, payload }) => {
 const run = async () => {
     try {
         core.info('Start to run the action.');
-        const { issue: { number, repo }, } = getGithubContext();
+        const { issue: { number, repo }, payload, } = getGithubContext();
+        const deploymentStatus = payload.deployment_status?.state;
+        // [INFO] 배포 상태가 pending 일 경우 종료합니다.
+        if (deploymentStatus === 'pending') {
+            core.info(`Deployment is pending. ${deploymentStatus}`);
+            return;
+        }
         // [INFO] 해당 워크플로우에 필요한 인풋을 가져옵니다.
         const token = core.getInput('token');
-        const extractionPoint = core.getInput('extractionPoint');
-        const slackWebHookURL = core.getInput('slackWebHookURL');
+        const extractionStartPoint = core.getInput('extractionStartPoint');
+        const extractionEndPoint = core.getInput('extractionEndPoint');
+        const slackWebhookURL = core.getInput('slackWebhookURL');
         // [ERROR] ACTION_REQUIRED_INPUT_KEY 에 해당하는 인풋이 없을 경우 에러를 발생시킵니다.
-        if (!token || !extractionPoint || !slackWebHookURL) {
+        if (!token || !extractionStartPoint || !slackWebhookURL) {
             const missingInputs = ACTION_REQUIRED_INPUT_KEY.filter((input) => !core.getInput(input));
             core.error(`Missing required inputs: ${missingInputs.join(', ')}`);
             return;
@@ -32489,30 +32520,49 @@ const run = async () => {
         const { title, body, html_url, head, user, assignees, base: { ref: baseBranchName }, } = pullRequestInfo;
         const repositoryName = repo ?? head.repo?.name;
         const pullRequestOwner = assignees?.map((assignee) => assignee.login).join(', ') ?? user.login;
+        // [INFO] 배포 상태가 success가 아닐 경우 배포 실패 메시지를 보내고 종료합니다.
+        if (deploymentStatus !== 'success') {
+            core.info(`Deployment is not success. ${deploymentStatus}`);
+            await sendSlackMessage({
+                webhookUrl: slackWebhookURL,
+                payload: buildSlackMessage({
+                    repositoryName,
+                    pullRequest: {
+                        title: title,
+                        url: html_url,
+                        number: number ?? pullRequestNumber,
+                        owner: pullRequestOwner,
+                        baseBranchName: baseBranchName,
+                    },
+                    deployStatus: 'fail',
+                }),
+            });
+            return;
+        }
         // [ERROR] PR의 body가 없을 경우 에러를 발생시킵니다.
         if (!body) {
             core.error('No body provided.');
             return;
         }
         // [INFO] PR의 body에서 divideSection에 해당하는 섹션을 추출합니다.
-        const extractedSection = extractSection(body, extractionPoint);
+        const extractedSection = extractSection(body, extractionStartPoint, extractionEndPoint);
         // [ERROR] 추출된 섹션이 없을 경우 에러를 발생시킵니다.
         if (!extractedSection) {
             core.error('No section found.');
             return;
         }
-        // [INFO] Slack 메시지를 보냅니다.
+        // [INFO] Slack 성공 메시지를 보냅니다.
         await sendSlackMessage({
-            webhookUrl: slackWebHookURL,
+            webhookUrl: slackWebhookURL,
             payload: buildSlackMessage({
                 repositoryName,
-                pullRequestInformation: {
-                    pullRequestTitle: title,
-                    pullRequestURL: html_url,
-                    pullRequestNumber: number ?? pullRequestNumber,
-                    pullRequestBody: (0,slack_messages.githubToSlack)(extractedSection),
-                    pullRequestOwner: pullRequestOwner,
-                    pullRequestBaseBranchName: baseBranchName,
+                pullRequest: {
+                    title: title,
+                    url: html_url,
+                    number: number ?? pullRequestNumber,
+                    body: (0,slack_messages.githubToSlack)(extractedSection),
+                    owner: pullRequestOwner,
+                    baseBranchName: baseBranchName,
                 },
             }),
         });

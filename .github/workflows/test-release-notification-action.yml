@@ -5,7 +5,6 @@ on:
 
 jobs:
   pr-action-body:
-    if: ${{ github.event_name == 'deployment_status' && github.event.deployment_status.state == 'success' }}
     runs-on: [ubuntu-latest]
     steps:
       - name: Checkout code
@@ -15,5 +14,6 @@ jobs:
         uses: ./
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          extractionPoint: '## 리뷰 요약 정보'
+          extractionStartPoint: '## 리뷰 요약 정보'
+          extractionEndPoint: '## 검토자가 알아야 할 사항'
           slackWebhookURL: ${{ secrets.SLACK_WEBHOOK_URL }}

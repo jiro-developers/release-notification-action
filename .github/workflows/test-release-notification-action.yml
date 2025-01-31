@@ -14,6 +14,6 @@ jobs:
         uses: ./
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          extractionStartPoint: '## 리뷰 요약 정보'
-          extractionEndPoint: '## 검토자가 알아야 할 사항'
+          extractionStartPoint: '## == 릴리즈 내용 시작 =='
+          extractionEndPoint: '## == 릴리즈 내용 종료 =='
           slackWebhookURL: ${{ secrets.SLACK_WEBHOOK_URL }}

@@ -67,6 +67,14 @@ const run = async (): Promise<void> => {
     const repositoryName = repo ?? head.repo?.name;
     const pullRequestOwner = assignees?.map((assignee) => assignee.login).join(', ') ?? user.login;
 
+    const pullRequestInformation = {
+      title: title,
+      url: html_url,
+      number: number ?? pullRequestNumber,
+      owner: pullRequestOwner,
+      baseBranchName: baseBranchName,
+    };
+
     // [INFO] 배포 상태가 success가 아닐 경우 배포 실패 메시지를 보내고 종료합니다.
     if (deploymentStatus !== 'success') {
       core.info(`Deployment is not success. ${deploymentStatus}`);
@@ -75,13 +83,7 @@ const run = async (): Promise<void> => {
         webhookUrl: slackWebhookURL,
         payload: buildSlackMessage({
           repositoryName,
-          pullRequest: {
-            title: title,
-            url: html_url,
-            number: number ?? pullRequestNumber,
-            owner: pullRequestOwner,
-            baseBranchName: baseBranchName,
-          },
+          pullRequest: pullRequestInformation,
           deployStatus: 'fail',
         }),
       });
@@ -110,12 +112,8 @@ const run = async (): Promise<void> => {
       payload: buildSlackMessage({
         repositoryName,
         pullRequest: {
-          title: title,
-          url: html_url,
-          number: number ?? pullRequestNumber,
+          ...pullRequestInformation,
           body: githubToSlack(extractedSection),
-          owner: pullRequestOwner,
-          baseBranchName: baseBranchName,
         },
       }),
     });

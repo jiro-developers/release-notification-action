@@ -16,4 +16,4 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           extractionPoint: '## 리뷰 요약 정보'
-          slackWebHookURL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          slackWebhookURL: ${{ secrets.SLACK_WEBHOOK_URL }}

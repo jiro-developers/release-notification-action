@@ -17,7 +17,7 @@
 |-----------------|-------------------------------------------------------|------|
 | token           | GitHub에서 제공하는 토큰                                      | O    |
 | extractionPoint | 본문을 추출할 기점 해당 기점부터 최하단 정보를 전부 긁어옵니다.<br>e.g '## 리뷰대기' | O    |
-| slackWebHookURL | slack bot을 통해 메시지를 보내기 위한 웹훅 URL                      | O    |
+| slackWebhookURL | slack bot을 통해 메시지를 보내기 위한 웹훅 URL                      | O    |
 
 ## Example
 

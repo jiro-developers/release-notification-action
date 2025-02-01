@@ -32316,7 +32316,7 @@ const extractSection = (input, extractionStartPoint, extractionEndPoint) => {
         return null;
     }
     const endIndex = startIndex + endMatch.index;
-    return input.slice(startIndex, endIndex);
+    return input.slice(startIndex, endIndex).trim();
 };
 
 

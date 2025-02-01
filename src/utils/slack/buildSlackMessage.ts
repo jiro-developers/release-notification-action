@@ -1,15 +1,7 @@
-import type { DividerBlock, SectionBlock, TextObject } from '@atomist/slack-messages/lib/SlackMessages';
+import type { TextObject } from '@slack/types';
+import type { IncomingWebhookSendArguments as SlackMessagePayload } from '@slack/webhook';
 
 import { MAX_LENGTH_OF_SLACK_MESSAGE } from '../../constants/common';
-
-type Blocks = SectionBlock | DividerBlock;
-
-type SlackMessagePayload = {
-  text: string;
-  username?: string;
-  icon_emoji?: string;
-  blocks: Blocks[];
-};
 
 interface BuildSlackMessageProps {
   pullRequest: {
@@ -38,7 +30,7 @@ const buildSlackMessage = ({
     { type: 'mrkdwn', text: `*PR*:\n\n<${url}|${title} - #${number}>` },
   ];
 
-  const blocks: Blocks[] = [
+  const blocks: SlackMessagePayload['blocks'] = [
     {
       type: 'section',
       text: { type: 'mrkdwn', text: titleMessage },

@@ -10,10 +10,10 @@ inputs:
     description: "GitHub token"
     required: true
   extractionStartPoint:
-    description: "본문을 추출할 기점 해당 기점부터 최하단 정보를 전부 긁어옵니다. '## 리뷰대기'"
+    description: "본문을 추출할 기점 해당 기점부터 최하단 정보를 전부 긁어옵니다. '== 릴리즈 내용 시작 =='"
     required: true
   extractionEndPoint:
-    description: "해당 기점까지만 추출을 합니다. 만약 값이 없다면,extractionStartPoint 기점으로 모든 값을 긁어옵니다. '## 리뷰대기'"
+    description: "해당 기점까지만 추출을 합니다. 만약 값이 없다면,extractionStartPoint 기점으로 모든 값을 긁어옵니다. '== 릴리즈 내용 종료 =='"
     required: false
   slackWebhookURL:
     description: "slack webhook url"

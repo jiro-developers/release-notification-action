@@ -7,7 +7,7 @@
 1. 메시지 전달을 위해 SLACK_WEBHOOK_URL 이름의 secret을 세팅하세요.
    - Repo > Settings > Secrets > New repository secret
 
-3. `.github/workflow/release-notification-action.yml` 파일을 생성하고 [Example](https://github.com/jiro-developers/release-notification-action/edit/main/README.md#example) 같이 작성하세요.
+3. `.github/workflow/release-notification-action.yml` 파일을 생성하고 [Example](https://github.com/jiro-developers/release-notification-action?tab=readme-ov-file#example) 같이 작성하세요.
 
 ## Inputs
 

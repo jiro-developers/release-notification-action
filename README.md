@@ -1,15 +1,13 @@
-# release-notification-action 1
-
-----------------
+# release-notification-action 
 
 
 
 ## Usage
 
 1. 메시지 전달을 위해 SLACK_WEBHOOK_URL 이름의 secret을 세팅하세요.
-    2. Repo > Settings > Secrets > New repository secret
+   - Repo > Settings > Secrets > New repository secret
 
-2. .github/workflow/release-notification-action.yml 파일을 생성하고 Example 같이 작성하세요.
+3. `.github/workflow/release-notification-action.yml` 파일을 생성하고 [Example](https://github.com/jiro-developers/release-notification-action/edit/main/README.md#example) 같이 작성하세요.
 
 ## Inputs
 
@@ -22,7 +20,7 @@
 | specificBranchPattern | 해당 브랜치에서만 액션에 대한 로직을 실행합니다. 만약 값을 넘기지 않는다면 모든 브랜치에서 실행됩니다. glob 패턴을 지원합니다 ex) 'release/*' / {main,develop,feature/*}  |  X   |
 ## Example
 
-```
+```yml
 name: release-notification-action  
   
 on:  
@@ -44,7 +42,7 @@ jobs:
 
 
 ## Example With extractionStartPoint and extractionEndPoint
-```
+``` markdown
 ###### 기능 개발용 `downstream/feature-branch` to `upstream/dev`
 ## == 릴리즈 내용 시작 ==
 ## 리뷰 요약 정보
@@ -78,7 +76,7 @@ jobs:
 
 **`extractionStartPoint` 기점으로 다음 줄 부터 추출되게 됩니다.**
 
-```
+``` markdown
 ## 지라 티켓
 - DD-000 포트폴리오 영상 자동 재생 처리
 -

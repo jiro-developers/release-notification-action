@@ -31,7 +31,7 @@ jobs:
     runs-on: [ubuntu-latest]  
     steps:  
       - name: release-notification-action  
-        uses: ./  
+        uses: jiro-developers/release-notification-action@latest  
         with:  
           token: ${{ secrets.GITHUB_TOKEN }}  
           extractionStartPoint: '## == 릴리즈 내용 시작 =='
@@ -137,7 +137,8 @@ jobs:
 
 
 ## Flow Chart
-![image](https://private-user-images.githubusercontent.com/67212771/408598481-abd0e469-bd16-40a4-96d2-5af39aa6b056.png?jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3MzgzMzM1NTMsIm5iZiI6MTczODMzMzI1MywicGF0aCI6Ii82NzIxMjc3MS80MDg1OTg0ODEtYWJkMGU0NjktYmQxNi00MGE0LTk2ZDItNWFmMzlhYTZiMDU2LnBuZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNTAxMzElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjUwMTMxVDE0MjA1M1omWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTlmMDA2YWFhYzdlYTNiOWU1ODFiNzliMDVjYzk4MzJjNjlhY2U4OTQzNWZkMmZhMWU0OTFjYjJiYjhlZGM1NTYmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0In0.YdARNKxWfw7EIflO8wfCovotbFUrGMemDq01Xmy4PTw)
+![image](https://github.com/user-attachments/assets/2f15ebab-b429-4eb7-9108-008cce4ba321)
+
 
 
 ## License

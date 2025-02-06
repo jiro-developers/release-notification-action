@@ -21,6 +21,9 @@ inputs:
   specificBranchPattern:
     description: "해당 브랜치에서만 액션에 대한 로직을 실행합니다. 만약 값을 넘기지 않는다면 모든 브랜치에서 실행됩니다. glob 패턴을 지원합니다 ex) 'release/*' / {main,develop,feature/*} "
     required: false
+  specificDeployEnvironment:
+    description: "배포 환경을 감지합니다. 만약 값이 없다면, 배포 환경을 감지하지 않습니다. glob 패턴을 지원합니다 ex) {Production,Preview}"
+    required: false
 
 runs:
   using: "node16"

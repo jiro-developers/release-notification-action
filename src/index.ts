@@ -18,10 +18,10 @@ const run = async (): Promise<void> => {
     const {
       issue: { number, repo },
       payload,
-      ref,
     } = getGithubContext();
 
     const deploymentStatus = payload.deployment_status?.state as GithubDeploymentStatusState;
+    const deployEnvironment = payload?.deployment?.environment;
 
     // [INFO] 배포 상태가 pending 일 경우 종료합니다.
     if (deploymentStatus === 'pending') {
@@ -35,6 +35,17 @@ const run = async (): Promise<void> => {
     const extractionEndPoint = core.getInput('extractionEndPoint');
     const slackWebhookURL = core.getInput('slackWebhookURL');
     const specificBranchPattern = core.getInput('specificBranchPattern');
+    const specificDeployEnvironment = core.getInput('specificDeployEnvironment');
+
+    const isMatchedDeployEnvironment = minimatch(deployEnvironment, specificDeployEnvironment, {
+      nobrace: false,
+    });
+
+    // specificDeployEnvironment 패턴이 들어왔고, 해당 패턴에 매칭되지 않는 브랜치일 경우 실행시키지 않습니다.
+    if (specificDeployEnvironment && !isMatchedDeployEnvironment) {
+      core.info(`The Deploy Environment ${deployEnvironment} does not match the pattern ${specificDeployEnvironment}.`);
+      return;
+    }
 
     // [ERROR] ACTION_REQUIRED_INPUT_KEY 에 해당하는 인풋이 없을 경우 에러를 발생시킵니다.
     if (!token || !extractionStartPoint || !slackWebhookURL) {

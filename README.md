@@ -11,13 +11,14 @@
 
 ## Inputs
 
-| 값                    | 설명                                                                                                                    | 필수여부 |
-|----------------------|-----------------------------------------------------------------------------------------------------------------------|------|
-| token                | GitHub에서 제공하는 토큰                                                                                                      | O    |
-| extractionStartPoint | 본문을 추출할 기점 해당 기점부터 최하단 정보를 전부 긁어옵니다.<br>e.g '## == 릴리즈 내용 시작 =='                                                      | O    |
-| extractionEndPoint   | 해당 기점까지만 추출을 합니다. 만약 값이 없다면,extractionStartPoint 기점으로 모든 값을 긁어옵니다. <br>e.g '## == 릴리즈 내용 종료 =='                       | X    |
-| slackWebhookURL      | slack bot을 통해 메시지를 보내기 위한 웹훅 URL                                                                                      | O    |
-| specificBranchPattern | 해당 브랜치에서만 액션에 대한 로직을 실행합니다. 만약 값을 넘기지 않는다면 모든 브랜치에서 실행됩니다. glob 패턴을 지원합니다 ex) 'release/*' / {main,develop,feature/*}  |  X   |
+| 값                          | 설명                                                                                                                   | 필수여부 |
+|----------------------------|----------------------------------------------------------------------------------------------------------------------|------|
+| token                      | GitHub에서 제공하는 토큰                                                                                                     | O    |
+| extractionStartPoint       | 본문을 추출할 기점 해당 기점부터 최하단 정보를 전부 긁어옵니다.<br>e.g '## == 릴리즈 내용 시작 =='                                                     | O    |
+| extractionEndPoint         | 해당 기점까지만 추출을 합니다. 만약 값이 없다면,extractionStartPoint 기점으로 모든 값을 긁어옵니다. <br>e.g '## == 릴리즈 내용 종료 =='                      | X    |
+| slackWebhookURL            | slack bot을 통해 메시지를 보내기 위한 웹훅 URL                                                                                     | O    |
+| specificBranchPattern      | 해당 브랜치에서만 액션에 대한 로직을 실행합니다. 만약 값을 넘기지 않는다면 모든 브랜치에서 실행됩니다. glob 패턴을 지원합니다 ex) 'release/*' / {main,develop,feature/*} |  X   |
+| specificDeployEnvironment  | 배포 환경을 감지합니다. 만약 값이 없다면, 배포 환경을 감지하지 않습니다. glob 패턴을 지원합니다 ex) {Production,Preview}                                   |  X   |
 ## Example
 
 ```yml
@@ -38,6 +39,7 @@ jobs:
           extractionEndPoint: '## == 릴리즈 내용 종료 =='  
           slackWebHookURL: ${{ secrets.SLACK_WEBHOOK_URL }}
           specificBranchPattern: 'main'
+          specificDeployEnvironment: 'Production'
 ```
 
 
@@ -134,6 +136,7 @@ jobs:
 - 본 액션은 deployment_status 이벤트를 통해 실행됩니다.
    - deployment_status 이벤트는 배포 상태가 변경될 때마다 트리거됩니다.
      - 배포 상태가 pending 이라면 종료됩니다.
+- 각 ci/cd 플랫폼에 따라 environment 에 대한 값이 다를 수 있습니다. 각 플랫폼 혹은 action/deployments 를 확인해주세요.
 
 
 ## Flow Chart

@@ -2,8 +2,8 @@ name: "release-notification-action"
 description: "release-notification-action"
 
 branding:
-  icon: "activity"
-  color: "blue"
+  icon: "bell"
+  color: "white"
 
 inputs:
   token:

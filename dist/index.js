@@ -34576,7 +34576,7 @@ const run = async () => {
         core.info('Start to run the action.');
         const { issue: { number, repo }, payload, } = getGithubContext();
         const deploymentStatus = payload.deployment_status?.state;
-        const deployEnvironment = payload.deployment.environment;
+        const deployEnvironment = payload?.deployment?.environment;
         // [INFO] 배포 상태가 pending 일 경우 종료합니다.
         if (deploymentStatus === 'pending') {
             core.info(`Deployment is pending. ${deploymentStatus}`);

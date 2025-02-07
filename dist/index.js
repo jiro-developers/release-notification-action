@@ -34515,14 +34515,29 @@ const buildSlackMessage = ({ pullRequest: { title, url, number, body, owner, bas
     const deployStatusMessage = deployStatus === 'fail' ? '실패' : '완료';
     const titleMessage = `${repositoryName}에서 배포가 ${deployStatusMessage}되었습니다.`;
     const fields = [
-        { type: 'mrkdwn', text: `*PR 담당자*:\n\n${owner}` },
-        { type: 'mrkdwn', text: `*merge 된 브랜치*:\n\n${baseBranchName}` },
-        { type: 'mrkdwn', text: `*PR*:\n\n<${url}|${title} - #${number}>` },
+        {
+            type: 'mrkdwn',
+            text: `*merge 된 브랜치:*\n ${baseBranchName}`,
+        },
+        {
+            type: 'mrkdwn',
+            text: `*PR 담당자:*\n ${owner}`,
+        },
+        { type: 'mrkdwn', text: `*PR*:\n <${url}|${title} - #${number}>` },
     ];
     const blocks = [
         {
+            type: 'header',
+            text: {
+                type: 'plain_text',
+                text: titleMessage,
+            },
+        },
+        {
+            type: 'divider',
+        },
+        {
             type: 'section',
-            text: { type: 'mrkdwn', text: titleMessage },
             fields,
         },
     ];

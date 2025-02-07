@@ -39,9 +39,10 @@ const run = async (): Promise<void> => {
 
     const isMatchedDeployEnvironment = minimatch(deployEnvironment, specificDeployEnvironment, {
       nobrace: false,
+      nocase: true,
     });
 
-    // specificDeployEnvironment 패턴이 들어왔고, 해당 패턴에 매칭되지 않는 브랜치일 경우 실행시키지 않습니다.
+    // specificDeployEnvironment 패턴이 들어왔고, 해당 패턴에 매칭되지 않는 Deploy Environment 경우 실행시키지 않습니다.
     if (specificDeployEnvironment && !isMatchedDeployEnvironment) {
       core.info(`The Deploy Environment ${deployEnvironment} does not match the pattern ${specificDeployEnvironment}.`);
       return;

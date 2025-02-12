@@ -34592,6 +34592,7 @@ const run = async () => {
         const { issue: { number, repo }, payload, } = getGithubContext();
         const deploymentStatus = payload.deployment_status?.state;
         const deployEnvironment = payload?.deployment?.environment;
+        const deploySha = payload?.deployment?.sha;
         // [INFO] 배포 상태가 pending 일 경우 종료합니다.
         if (deploymentStatus === 'pending') {
             core.info(`Deployment is pending. ${deploymentStatus}`);
@@ -34630,12 +34631,23 @@ const run = async () => {
             core.error('No PR data found.');
             return;
         }
-        const { title, body, html_url, head, user, assignees, base: { ref: baseBranchName }, } = pullRequestInfo;
+        const { title, body, html_url, head, user, assignees, merge_commit_sha, base: { ref: baseBranchName }, } = pullRequestInfo;
         const repositoryName = repo ?? head.repo?.name;
         const pullRequestOwner = assignees?.map((assignee) => assignee.login).join(', ') ?? user.login;
         const isMatchedBranch = minimatch(baseBranchName, specificBranchPattern, {
             nobrace: false,
         });
+        console.info(`merge_commit_sha: ${merge_commit_sha} \n deploySha:${deploySha}`);
+        // 머지가 되지 않았더라면, 실행 시키지 않습니다.
+        if (!merge_commit_sha) {
+            core.info(`This PR was Not Merge`);
+            return;
+        }
+        // 머지 커밋과 deploy sha 와 같지 않으면 실행 시키지 않습니다.
+        if (merge_commit_sha !== deploySha) {
+            core.info(`This Sha was Not Same deploySha`);
+            return;
+        }
         // specificBranchPattern 패턴이 들어왔고, 해당 패턴에 매칭되지 않는 브랜치일 경우 실행시키지 않습니다.
         if (specificBranchPattern && !isMatchedBranch) {
             core.info(`The branch name ${baseBranchName} does not match the pattern ${specificBranchPattern}.`);

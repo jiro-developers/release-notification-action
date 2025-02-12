@@ -22,6 +22,7 @@ const run = async (): Promise<void> => {
 
     const deploymentStatus = payload.deployment_status?.state as GithubDeploymentStatusState;
     const deployEnvironment = payload?.deployment?.environment;
+    const deploySha = payload?.deployment?.sha;
 
     // [INFO] 배포 상태가 pending 일 경우 종료합니다.
     if (deploymentStatus === 'pending') {
@@ -77,6 +78,7 @@ const run = async (): Promise<void> => {
       head,
       user,
       assignees,
+      merge_commit_sha,
       base: { ref: baseBranchName },
     } = pullRequestInfo;
     const repositoryName = repo ?? head.repo?.name;
@@ -85,9 +87,23 @@ const run = async (): Promise<void> => {
       nobrace: false,
     });
 
+    core.info(`merge_commit_sha: ${merge_commit_sha} \n deploy_sha:${deploySha}`);
+
+    // 머지가 되지 않았더라면, 실행 시키지 않습니다.
+    if (!merge_commit_sha) {
+      core.info(`This PR was Not Merge`);
+      return;
+    }
+
+    // 머지 커밋과 deploy sha 와 같지 않으면 실행 시키지 않습니다.
+    if (merge_commit_sha !== deploySha) {
+      core.error(`This Sha was Not Same deploySha \n merge_commit_sha: ${merge_commit_sha} \n deploy_sha:${deploySha}`);
+      return;
+    }
+
     // specificBranchPattern 패턴이 들어왔고, 해당 패턴에 매칭되지 않는 브랜치일 경우 실행시키지 않습니다.
     if (specificBranchPattern && !isMatchedBranch) {
-      core.info(`The branch name ${baseBranchName} does not match the pattern ${specificBranchPattern}.`);
+      core.error(`The branch name ${baseBranchName} does not match the pattern ${specificBranchPattern}.`);
       return;
     }
 

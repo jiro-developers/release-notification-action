@@ -2,7 +2,7 @@ import * as core from '@actions/core';
 import { githubToSlack } from '@atomist/slack-messages';
 import { minimatch } from 'minimatch';
 
-import { ACTION_REQUIRED_INPUT_KEY, DEPLOY_ERROR_STATUS_LIST } from './constants/common';
+import { ACTION_REQUIRED_INPUT_KEY, DEPLOY_ERROR_STATUS_LIST, DEPLOY_SUCCEED_STATUS_LIST } from './constants/common';
 import type { GithubDeploymentStatusState } from './types';
 import { extractSection } from './utils/extractSection';
 import { getGithubContext } from './utils/github/getGithubContext';
@@ -24,8 +24,9 @@ const run = async (): Promise<void> => {
     const deployEnvironment = payload?.deployment?.environment;
     const deploySha = payload?.deployment?.sha;
 
-    // [INFO] 배포 상태가 success 와 DEPLOY_ERROR_STATUS_LIST 에 해당 되지 않을 경우 로딩 상태로 취급 하고 종료합니다.
-    if (!['success', ...DEPLOY_ERROR_STATUS_LIST].includes(deploymentStatus)) {
+    // [INFO] 배포 상태가 DEPLOY_SUCCEED_STATUS_LIST 와 DEPLOY_ERROR_STATUS_LIST 에 해당 되지 않을 경우 로딩 상태로 취급 하고 종료합니다.
+    const isPendingStatus = ![...DEPLOY_SUCCEED_STATUS_LIST, ...DEPLOY_ERROR_STATUS_LIST].includes(deploymentStatus);
+    if (isPendingStatus) {
       core.info(`Deployment is loading. ${deploymentStatus}`);
       return;
     }

@@ -34357,6 +34357,7 @@ const ACTION_REQUIRED_INPUT_KEY = [
  * **/
 const MAX_LENGTH_OF_SLACK_MESSAGE = 4_000;
 const DEPLOY_ERROR_STATUS_LIST = ['failure', 'error'];
+const DEPLOY_SUCCEED_STATUS_LIST = ['success'];
 
 
 ;// CONCATENATED MODULE: ./src/utils/extractSection.ts
@@ -34594,8 +34595,9 @@ const run = async () => {
         const deploymentStatus = payload.deployment_status?.state;
         const deployEnvironment = payload?.deployment?.environment;
         const deploySha = payload?.deployment?.sha;
-        // [INFO] 배포 상태가 success 와 DEPLOY_ERROR_STATUS_LIST 에 해당 되지 않을 경우 로딩 상태로 취급 하고 종료합니다.
-        if (!['success', ...DEPLOY_ERROR_STATUS_LIST].includes(deploymentStatus)) {
+        // [INFO] 배포 상태가 DEPLOY_SUCCEED_STATUS_LIST 와 DEPLOY_ERROR_STATUS_LIST 에 해당 되지 않을 경우 로딩 상태로 취급 하고 종료합니다.
+        const isPendingStatus = ![...DEPLOY_SUCCEED_STATUS_LIST, ...DEPLOY_ERROR_STATUS_LIST].includes(deploymentStatus);
+        if (isPendingStatus) {
             core.info(`Deployment is loading. ${deploymentStatus}`);
             return;
         }

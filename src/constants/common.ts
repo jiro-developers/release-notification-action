@@ -1,3 +1,5 @@
+import type { GithubDeploymentStatusState } from '../types';
+
 /**
  * 액션에서 필수적으로 사용되는 입력되어야 할 키 값입니다.
  * **/
@@ -16,4 +18,7 @@ const ACTION_REQUIRED_INPUT_KEY = [
  * **/
 const MAX_LENGTH_OF_SLACK_MESSAGE = 4_000;
 
-export { ACTION_REQUIRED_INPUT_KEY, MAX_LENGTH_OF_SLACK_MESSAGE };
+const DEPLOY_LOADING_STATUS_LIST: GithubDeploymentStatusState[] = ['pending', 'queued', 'in_progress'];
+const DEPLOY_ERROR_STATUS_LIST: GithubDeploymentStatusState[] = ['failure', 'error'];
+
+export { ACTION_REQUIRED_INPUT_KEY, MAX_LENGTH_OF_SLACK_MESSAGE, DEPLOY_LOADING_STATUS_LIST, DEPLOY_ERROR_STATUS_LIST };

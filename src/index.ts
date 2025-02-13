@@ -2,7 +2,7 @@ import * as core from '@actions/core';
 import { githubToSlack } from '@atomist/slack-messages';
 import { minimatch } from 'minimatch';
 
-import { ACTION_REQUIRED_INPUT_KEY } from './constants/common';
+import { ACTION_REQUIRED_INPUT_KEY, DEPLOY_ERROR_STATUS_LIST, DEPLOY_LOADING_STATUS_LIST } from './constants/common';
 import type { GithubDeploymentStatusState } from './types';
 import { extractSection } from './utils/extractSection';
 import { getGithubContext } from './utils/github/getGithubContext';
@@ -24,8 +24,8 @@ const run = async (): Promise<void> => {
     const deployEnvironment = payload?.deployment?.environment;
     const deploySha = payload?.deployment?.sha;
 
-    // [INFO] 배포 상태가 pending 일 경우 종료합니다.
-    if (deploymentStatus === 'pending') {
+    // [INFO] 배포 상태가 DEPLOY_LOADING_STATUS_LIST 에 해당 될 경우 종료합니다.
+    if (DEPLOY_LOADING_STATUS_LIST.includes(deploymentStatus)) {
       core.info(`Deployment is pending. ${deploymentStatus}`);
       return;
     }
@@ -37,6 +37,15 @@ const run = async (): Promise<void> => {
     const slackWebhookURL = core.getInput('slackWebhookURL');
     const specificBranchPattern = core.getInput('specificBranchPattern');
     const specificDeployEnvironment = core.getInput('specificDeployEnvironment');
+
+    core.info(`
+      [USER INPUT] \n
+      token: ${token} \n 
+      extractionStartPoint: ${extractionStartPoint} \n 
+      extractionEndPoint: ${extractionEndPoint} \n 
+      slackWebhookURL: ${slackWebhookURL} \n 
+      specificBranchPattern: ${specificBranchPattern} \n 
+      specificDeployEnvironment: ${specificDeployEnvironment}`);
 
     const isMatchedDeployEnvironment = minimatch(deployEnvironment, specificDeployEnvironment, {
       nobrace: false,
@@ -87,7 +96,17 @@ const run = async (): Promise<void> => {
       nobrace: false,
     });
 
-    core.info(`merge_commit_sha: ${merge_commit_sha} \n deploy_sha:${deploySha}`);
+    core.info(`
+    [PULL REQUEST INFO] \n
+    title: ${title} \n
+    html_url: ${html_url} \n
+    head: ${head} \n
+    user: ${user} \n
+    assignees: ${assignees} \n
+    merge_commit_sha: ${merge_commit_sha} \n
+    baseBranchName: ${baseBranchName} \n
+    repositoryName: ${repositoryName} \n
+    pullRequestOwner: ${pullRequestOwner}`);
 
     // 머지가 되지 않았더라면, 실행 시키지 않습니다.
     if (!merge_commit_sha) {
@@ -115,8 +134,8 @@ const run = async (): Promise<void> => {
       baseBranchName: baseBranchName,
     };
 
-    // [INFO] 배포 상태가 success가 아닐 경우 배포 실패 메시지를 보내고 종료합니다.
-    if (deploymentStatus !== 'success') {
+    // [INFO] 배포 상태가 DEPLOY_ERROR_STATUS_LIST 에 해당 되는 경우 배포 실패 메시지를 보내고 종료합니다.
+    if (DEPLOY_ERROR_STATUS_LIST.includes(deploymentStatus)) {
       core.info(`Deployment is not success. ${deploymentStatus}`);
 
       await sendSlackMessage({

@@ -34356,6 +34356,8 @@ const ACTION_REQUIRED_INPUT_KEY = [
  * @see https://api.slack.com/methods/chat.postMessage#truncating
  * **/
 const MAX_LENGTH_OF_SLACK_MESSAGE = 4_000;
+const DEPLOY_LOADING_STATUS_LIST = ['pending', 'queued', 'in_progress'];
+const DEPLOY_ERROR_STATUS_LIST = ['failure', 'error'];
 
 
 ;// CONCATENATED MODULE: ./src/utils/extractSection.ts
@@ -34593,8 +34595,8 @@ const run = async () => {
         const deploymentStatus = payload.deployment_status?.state;
         const deployEnvironment = payload?.deployment?.environment;
         const deploySha = payload?.deployment?.sha;
-        // [INFO] 배포 상태가 pending 일 경우 종료합니다.
-        if (deploymentStatus === 'pending') {
+        // [INFO] 배포 상태가 DEPLOY_LOADING_STATUS_LIST 에 해당 될 경우 종료합니다.
+        if (DEPLOY_LOADING_STATUS_LIST.includes(deploymentStatus)) {
             core.info(`Deployment is pending. ${deploymentStatus}`);
             return;
         }
@@ -34605,6 +34607,14 @@ const run = async () => {
         const slackWebhookURL = core.getInput('slackWebhookURL');
         const specificBranchPattern = core.getInput('specificBranchPattern');
         const specificDeployEnvironment = core.getInput('specificDeployEnvironment');
+        core.info(`
+      [USER INPUT] \n
+      token: ${token} \n 
+      extractionStartPoint: ${extractionStartPoint} \n 
+      extractionEndPoint: ${extractionEndPoint} \n 
+      slackWebhookURL: ${slackWebhookURL} \n 
+      specificBranchPattern: ${specificBranchPattern} \n 
+      specificDeployEnvironment: ${specificDeployEnvironment}`);
         const isMatchedDeployEnvironment = minimatch(deployEnvironment, specificDeployEnvironment, {
             nobrace: false,
             nocase: true,
@@ -34637,7 +34647,17 @@ const run = async () => {
         const isMatchedBranch = minimatch(baseBranchName, specificBranchPattern, {
             nobrace: false,
         });
-        console.info(`merge_commit_sha: ${merge_commit_sha} \n deploySha:${deploySha}`);
+        core.info(`
+    [PULL REQUEST INFO] \n
+    title: ${title} \n
+    html_url: ${html_url} \n
+    head: ${head} \n
+    user: ${user} \n
+    assignees: ${assignees} \n
+    merge_commit_sha: ${merge_commit_sha} \n
+    baseBranchName: ${baseBranchName} \n
+    repositoryName: ${repositoryName} \n
+    pullRequestOwner: ${pullRequestOwner}`);
         // 머지가 되지 않았더라면, 실행 시키지 않습니다.
         if (!merge_commit_sha) {
             core.info(`This PR was Not Merge`);
@@ -34645,12 +34665,12 @@ const run = async () => {
         }
         // 머지 커밋과 deploy sha 와 같지 않으면 실행 시키지 않습니다.
         if (merge_commit_sha !== deploySha) {
-            core.info(`This Sha was Not Same deploySha`);
+            core.error(`This Sha was Not Same deploySha \n merge_commit_sha: ${merge_commit_sha} \n deploy_sha:${deploySha}`);
             return;
         }
         // specificBranchPattern 패턴이 들어왔고, 해당 패턴에 매칭되지 않는 브랜치일 경우 실행시키지 않습니다.
         if (specificBranchPattern && !isMatchedBranch) {
-            core.info(`The branch name ${baseBranchName} does not match the pattern ${specificBranchPattern}.`);
+            core.error(`The branch name ${baseBranchName} does not match the pattern ${specificBranchPattern}.`);
             return;
         }
         const pullRequestInformation = {
@@ -34660,8 +34680,8 @@ const run = async () => {
             owner: pullRequestOwner,
             baseBranchName: baseBranchName,
         };
-        // [INFO] 배포 상태가 success가 아닐 경우 배포 실패 메시지를 보내고 종료합니다.
-        if (deploymentStatus !== 'success') {
+        // [INFO] 배포 상태가 DEPLOY_ERROR_STATUS_LIST 에 해당 되는 경우 배포 실패 메시지를 보내고 종료합니다.
+        if (DEPLOY_ERROR_STATUS_LIST.includes(deploymentStatus)) {
             core.info(`Deployment is not success. ${deploymentStatus}`);
             await sendSlackMessage({
                 webhookURL: slackWebhookURL,

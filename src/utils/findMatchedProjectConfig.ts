@@ -45,6 +45,12 @@ const findMatchedProjectConfig = async ({
       nocase: true,
     });
 
+    core.info(`isMatchedBranch: ${isMatchedBranch} \n 
+      isMatchedFilePath: ${isMatchedFilePath} \n 
+      isMatchedDeployEnvironment: ${isMatchedDeployEnvironment} \n
+      projectConfig: ${JSON.stringify(projectConfig)}
+      `);
+
     return isMatchedBranch && isMatchedFilePath && isMatchedDeployEnvironment;
   });
 };

@@ -47,46 +47,12 @@ const run = async (): Promise<void> => {
       core.info(`Deployment is loading. ${deploymentStatus}`);
       return;
     }
-
-    // [INFO] 해당 워크플로우에 필요한 인풋을 가져옵니다.
-    const token = core.getInput('token');
-    const extractionStartPoint = core.getInput('extractionStartPoint');
-    const extractionEndPoint = core.getInput('extractionEndPoint');
-    const slackWebhookURL = core.getInput('slackWebhookURL');
-    const specificBranchPattern = core.getInput('specificBranchPattern');
-    const specificDeployEnvironment = core.getInput('specificDeployEnvironment');
-
-    core.info(`
-      [USER INPUT] \n
-      token: ${token} \n 
-      extractionStartPoint: ${extractionStartPoint} \n 
-      extractionEndPoint: ${extractionEndPoint} \n 
-      slackWebhookURL: ${slackWebhookURL} \n 
-      specificBranchPattern: ${specificBranchPattern} \n 
-      specificDeployEnvironment: ${specificDeployEnvironment}`);
-
-    const isMatchedDeployEnvironment = minimatch(deployEnvironment, specificDeployEnvironment, {
-      nobrace: false,
-      nocase: true,
-    });
-
-    // specificDeployEnvironment 패턴이 들어왔고, 해당 패턴에 매칭되지 않는 Deploy Environment 경우 실행시키지 않습니다.
-    if (specificDeployEnvironment && !isMatchedDeployEnvironment) {
-      core.info(`The Deploy Environment ${deployEnvironment} does not match the pattern ${specificDeployEnvironment}.`);
-      return;
-    }
-
-    // [ERROR] ACTION_REQUIRED_INPUT_KEY 에 해당하는 인풋이 없을 경우 에러를 발생시킵니다.
-    if (!token || !extractionStartPoint || !slackWebhookURL) {
-      const missingInputs = ACTION_REQUIRED_INPUT_KEY.filter((input) => !core.getInput(input));
-      core.error(`Missing required inputs: ${missingInputs.join(', ')}`);
-      return;
-    }
+    /**------------------------ 배포 상태 검증 종료 -----------------------------**/
 
     const pullRequestNumber = await getPullRequestNumber(token);
 
     if (!pullRequestNumber) {
-      core.error('No PR number found.');
+      core.error('Could not find the Pull Request number');
       return;
     }
 
@@ -94,7 +60,7 @@ const run = async (): Promise<void> => {
     const pullRequestInfo = await getPullRequestInfo(token, pullRequestNumber);
 
     if (!pullRequestInfo) {
-      core.error('No PR data found.');
+      core.error('Could not find the Pull Request information.');
       return;
     }
 
@@ -103,16 +69,14 @@ const run = async (): Promise<void> => {
       body,
       html_url,
       head,
-      user,
       assignees,
       merge_commit_sha,
+      user,
       base: { ref: baseBranchName },
     } = pullRequestInfo;
-    const repositoryName = repo ?? head.repo?.name;
-    const pullRequestOwner = assignees?.map((assignee) => assignee.login).join(', ') ?? user.login;
-    const isMatchedBranch = minimatch(baseBranchName, specificBranchPattern, {
-      nobrace: false,
-    });
+
+    const safeAssignees = assignees?.map((assignee) => assignee.login) ?? [];
+    const pullRequestOwner = [...new Set([user?.login, ...safeAssignees])].join(', ');
 
     core.info(`
     [PULL REQUEST INFO] \n
@@ -123,26 +87,45 @@ const run = async (): Promise<void> => {
     assignees: ${assignees} \n
     merge_commit_sha: ${merge_commit_sha} \n
     baseBranchName: ${baseBranchName} \n
-    repositoryName: ${repositoryName} \n
-    pullRequestOwner: ${pullRequestOwner}`);
+    pullRequestOwner: ${pullRequestOwner}
+    `);
 
     // 머지가 되지 않았더라면, 실행 시키지 않습니다.
     if (!merge_commit_sha) {
-      core.info(`This PR was Not Merge`);
+      core.error(`#${pullRequestNumber} - This Pull Request was Not Merge`);
       return;
     }
 
     // 머지 커밋과 deploy sha 와 같지 않으면 실행 시키지 않습니다.
-    if (merge_commit_sha !== deploySha) {
-      core.error(`This Sha was Not Same deploySha \n merge_commit_sha: ${merge_commit_sha} \n deploy_sha:${deploySha}`);
+    if (merge_commit_sha !== deployCommitSha) {
+      core.error(
+        `This Sha was Not Same deploySha \n merge_commit_sha: ${merge_commit_sha} \n deploy_sha:${deployCommitSha}`
+      );
       return;
     }
 
-    // specificBranchPattern 패턴이 들어왔고, 해당 패턴에 매칭되지 않는 브랜치일 경우 실행시키지 않습니다.
-    if (specificBranchPattern && !isMatchedBranch) {
-      core.error(`The branch name ${baseBranchName} does not match the pattern ${specificBranchPattern}.`);
+    const parsedProjects = safeJsonParse<ProjectConfig[]>(projectConfig);
+    if (!parsedProjects) {
+      core.error('JSON parsing error occurred,');
       return;
     }
+
+    const matchedProject = await findMatchedProjectConfig({
+      token,
+      projectConfig,
+      commitSha: merge_commit_sha,
+      baseBranchName,
+    });
+
+    // [INFO] 해당 프로젝트 설정이 없을 경우 종료합니다.
+    if (!matchedProject) {
+      core.error('No matching Condition found in the project settings');
+      return;
+    }
+
+    const {
+      issue: { number },
+    } = getGithubContext();
 
     const pullRequestInformation = {
       title: title,
@@ -154,12 +137,12 @@ const run = async (): Promise<void> => {
 
     // [INFO] 배포 상태가 DEPLOY_ERROR_STATUS_LIST 에 해당 되는 경우 배포 실패 메시지를 보내고 종료합니다.
     if (DEPLOY_ERROR_STATUS_LIST.includes(deploymentStatus)) {
-      core.info(`Deployment is not success. ${deploymentStatus}`);
+      core.info(`Deployment was Failure. ${deploymentStatus}`);
 
       await sendSlackMessage({
         webhookURL: slackWebhookURL,
         payload: buildSlackMessage({
-          repositoryName,
+          titleMessage: matchedProject.failedReleaseTitle,
           pullRequest: pullRequestInformation,
           deployStatus: 'fail',
         }),
@@ -179,7 +162,7 @@ const run = async (): Promise<void> => {
 
     // [ERROR] 추출된 섹션이 없을 경우 에러를 발생시킵니다.
     if (!extractedSection) {
-      core.error('No section found.');
+      core.error('Could not find the section.');
       return;
     }
 
@@ -187,7 +170,7 @@ const run = async (): Promise<void> => {
     await sendSlackMessage({
       webhookURL: slackWebhookURL,
       payload: buildSlackMessage({
-        repositoryName,
+        titleMessage: matchedProject.successReleaseTitle,
         pullRequest: {
           ...pullRequestInformation,
           body: githubToSlack(extractedSection),

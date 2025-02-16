@@ -17,4 +17,3 @@ jobs:
           extractionStartPoint: '###### == 릴리즈 내용 시작 =='
           extractionEndPoint: '###### == 릴리즈 내용 종료 =='
           slackWebhookURL: ${{ secrets.SLACK_WEBHOOK_URL }}
-          specificBranchPattern: 'main'

@@ -50,6 +50,7 @@ const findMatchedProjectConfig = async ({
       isMatchedBranch,
       isMatchedFilePath,
       isMatchedDeployEnvironment,
+      changedFileNameFromCommitHash,
       projectConfig,
     });
 

@@ -1,21 +1,14 @@
 import * as core from '@actions/core';
 
 import { ACTION_INPUT_KEY_LIST } from '@/constants/common';
-import type { ProjectConfig } from '@/types';
-import { safeJsonParse } from '@/utils/common';
+import { coreLogger } from '@/utils/github/coreLogger';
 
 const getGithubCoreInput = () => {
   const result = Object.fromEntries(ACTION_INPUT_KEY_LIST.map((key) => [key, core.getInput(key)]));
 
-  core.info(JSON.stringify(result));
+  coreLogger.info(result);
 
   return result;
 };
 
-const getProjectConfigFromInput = () => {
-  const projectConfig = core.getInput('projectConfig');
-
-  return safeJsonParse<ProjectConfig[]>(projectConfig);
-};
-
-export { getGithubCoreInput, getProjectConfigFromInput };
+export { getGithubCoreInput };

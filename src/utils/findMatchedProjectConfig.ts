@@ -4,6 +4,7 @@ import { minimatch } from 'minimatch';
 import type { ProjectConfig } from '@/types';
 import { safeJsonParse } from '@/utils/common';
 import { getChangedFileListFromCommit } from '@/utils/github/commit/getChangedFileListFromCommit';
+import { coreLogger } from '@/utils/github/coreLogger';
 import { getDeployInformationFromContext } from '@/utils/github/deployment/getDeployInformationFromContext';
 
 interface FindMatchedProjectConfigProps {
@@ -45,11 +46,12 @@ const findMatchedProjectConfig = async ({
       nocase: true,
     });
 
-    core.info(`isMatchedBranch: ${isMatchedBranch} \n 
-      isMatchedFilePath: ${isMatchedFilePath} \n 
-      isMatchedDeployEnvironment: ${isMatchedDeployEnvironment} \n
-      projectConfig: ${JSON.stringify(projectConfig)}
-      `);
+    coreLogger.info({
+      isMatchedBranch,
+      isMatchedFilePath,
+      isMatchedDeployEnvironment,
+      projectConfig,
+    });
 
     return isMatchedBranch && isMatchedFilePath && isMatchedDeployEnvironment;
   });

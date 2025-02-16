@@ -50,7 +50,7 @@ jobs:
                 "projectName": "mystery project - DEV",
                 "stage": "development",     
                 "triggerBranch": "dev",
-                "triggerFilePath": "*",    
+                "triggerFilePath": "**",    
                 "successReleaseTitle": "프로젝트 DEV 클라이언트가 업데이트됐습니다.", 
                 "failedReleaseTitle": "프로젝트 DEV 클라이언트가 배포에 실패했습니다."
               }
@@ -78,19 +78,19 @@ jobs:
 
 - 배포할 환경을 설정합니다.
     - `production` 또는 `development` 등으로 설정 가능합니다.
-    - 환경을 무시하려면 `*`을 입력하세요. glob 패턴을 지원합니다.
+    - 환경을 무시하려면 `**`을 입력하세요. glob 패턴을 지원합니다.
 
 ### triggerBranch
 
 - 배포를 트리거할 브랜치를 설정합니다.
     - 예를 들어, `master` 브랜치에서만 배포가 진행될 수 있도록 설정할 수 있습니다.
-    - 브랜치 값을 무시하려면 `*`을 입력하세요.
+    - 브랜치 값을 무시하려면 `**`을 입력하세요.
 
 ### triggerFilePath
 
 - 배포를 트리거할 파일 경로를 설정합니다.
     - 특정 파일 경로에 대한 변경을 감지할 수 있습니다. 예: `apps/example/*`, `pnpm-lock.yaml`.
-    - 파일 경로 값을 무시하려면 `*`을 입력하세요.
+    - 파일 경로 값을 무시하려면 `**`을 입력하세요.
 
 ### successReleaseTitle
 

@@ -17,3 +17,14 @@ jobs:
           extractionStartPoint: '###### == 릴리즈 내용 시작 =='
           extractionEndPoint: '###### == 릴리즈 내용 종료 =='
           slackWebhookURL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          projectConfig: >
+            [
+              {
+                "projectName": "mystery project - DEV",
+                "stage": "**",     
+                "triggerBranch": "main",
+                "triggerFilePath": "**",    
+                "successReleaseTitle": "mystery project DEV 클라이언트가 업데이트됐습니다.", 
+                "failedReleaseTitle": "mystery project DEV 클라이언트가 배포에 실패했습니다."
+              }
+            ]

@@ -1,6 +1,5 @@
 import * as core from '@actions/core';
 import { githubToSlack } from '@atomist/slack-messages';
-import { minimatch } from 'minimatch';
 
 import {
   ACTION_REQUIRED_INPUT_KEY_LIST,
@@ -11,7 +10,6 @@ import type { ProjectConfig } from '@/types';
 import { safeJsonParse } from '@/utils/common';
 import { extractSection } from '@/utils/extractSection';
 import { findMatchedProjectConfig } from '@/utils/findMatchedProjectConfig';
-import { getChangedFileListFromCommit } from '@/utils/github/commit/getChangedFileListFromCommit';
 import { checkRequiredInputList } from '@/utils/github/context/checkRequiredInputList';
 import { getGithubContext } from '@/utils/github/context/getGithubContext';
 import { getDeployInformationFromContext } from '@/utils/github/deployment/getDeployInformationFromContext';

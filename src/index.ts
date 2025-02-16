@@ -2,27 +2,44 @@ import * as core from '@actions/core';
 import { githubToSlack } from '@atomist/slack-messages';
 import { minimatch } from 'minimatch';
 
-import { ACTION_REQUIRED_INPUT_KEY, DEPLOY_ERROR_STATUS_LIST, DEPLOY_SUCCEED_STATUS_LIST } from './constants/common';
-import type { GithubDeploymentStatusState } from './types';
-import { extractSection } from './utils/extractSection';
-import { getGithubContext } from './utils/github/getGithubContext';
-import { getPullRequestInfo } from './utils/github/getPullRequestInfo';
-import { getPullRequestNumber } from './utils/github/getPullRequestNumber';
-import { buildSlackMessage } from './utils/slack/buildSlackMessage';
-import { sendSlackMessage } from './utils/slack/sendSlackMessage';
+import {
+  ACTION_REQUIRED_INPUT_KEY_LIST,
+  DEPLOY_ERROR_STATUS_LIST,
+  DEPLOY_SUCCEED_STATUS_LIST,
+} from '@/constants/common';
+import type { ProjectConfig } from '@/types';
+import { safeJsonParse } from '@/utils/common';
+import { extractSection } from '@/utils/extractSection';
+import { findMatchedProjectConfig } from '@/utils/findMatchedProjectConfig';
+import { getChangedFileListFromCommit } from '@/utils/github/commit/getChangedFileListFromCommit';
+import { checkRequiredInputList } from '@/utils/github/context/checkRequiredInputList';
+import { getGithubContext } from '@/utils/github/context/getGithubContext';
+import { getDeployInformationFromContext } from '@/utils/github/deployment/getDeployInformationFromContext';
+import { getGithubCoreInput } from '@/utils/github/getGithubCoreInput';
+import { getPullRequestInfo } from '@/utils/github/pullRequest/getPullRequestInfo';
+import { getPullRequestNumber } from '@/utils/github/pullRequest/getPullRequestNumber';
+import { buildSlackMessage } from '@/utils/slack/buildSlackMessage';
+import { sendSlackMessage } from '@/utils/slack/sendSlackMessage';
 
 const run = async (): Promise<void> => {
   try {
     core.info('Start to run the action.');
 
-    const {
-      issue: { number, repo },
-      payload,
-    } = getGithubContext();
+    // [INFO] 해당 워크플로우에 필요한 인풋을 가져옵니다.
+    const { token, extractionStartPoint, slackWebhookURL, extractionEndPoint, projectConfig } = getGithubCoreInput();
 
-    const deploymentStatus = payload.deployment_status?.state as GithubDeploymentStatusState;
-    const deployEnvironment = payload?.deployment?.environment;
-    const deploySha = payload?.deployment?.sha;
+    // [ERROR] 필수 입력값(ACTION_REQUIRED_INPUT_KEY) 누락 시 에러 처리 합니다.
+    const hasMissingInput = checkRequiredInputList([token, extractionStartPoint, slackWebhookURL, projectConfig]);
+
+    if (hasMissingInput) {
+      const missingInputKeys = ACTION_REQUIRED_INPUT_KEY_LIST.filter((key) => !core.getInput(key));
+      core.error(`Missing required inputs: ${missingInputKeys.join(', ')}`);
+
+      return;
+    }
+    /**------------------------ INPUT 검증 종료 -----------------------------**/
+
+    const { deploymentStatus, deployCommitSha } = getDeployInformationFromContext();
 
     // [INFO] 배포 상태가 DEPLOY_SUCCEED_STATUS_LIST 와 DEPLOY_ERROR_STATUS_LIST 에 해당 되지 않을 경우 로딩 상태로 취급 하고 종료합니다.
     const isPendingStatus = ![...DEPLOY_SUCCEED_STATUS_LIST, ...DEPLOY_ERROR_STATUS_LIST].includes(deploymentStatus);

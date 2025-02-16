@@ -1,7 +1,7 @@
 import type { TextObject } from '@slack/types';
 import type { IncomingWebhookSendArguments as SlackMessagePayload } from '@slack/webhook';
 
-import { MAX_LENGTH_OF_SLACK_MESSAGE } from '../../constants/common';
+import { MAX_LENGTH_OF_SLACK_MESSAGE } from '@/constants/common';
 
 interface BuildSlackMessageProps {
   pullRequest: {

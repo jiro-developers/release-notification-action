@@ -1,8 +1,8 @@
 import * as core from '@actions/core';
 import * as github from '@actions/github';
 
-import { getGithubContext } from './getGithubContext';
-import { getPullRequestFromCommit } from './getPullRequestFromCommit';
+import { getGithubContext } from '@/utils/github/context/getGithubContext';
+import { getPullRequestFromCommit } from '@/utils/github/pullRequest/getPullRequestFromCommit';
 
 /**
  * 배포된 PR 번호를 가져옵니다.

@@ -2,7 +2,7 @@ import * as core from '@actions/core';
 import * as github from '@actions/github';
 import type { RestEndpointMethodTypes } from '@octokit/plugin-rest-endpoint-methods';
 
-import { getGithubContext } from './getGithubContext';
+import { getGithubContext } from '@/utils/github/context/getGithubContext';
 
 /**
  * PR 정보를 가져옵니다.

@@ -5,5 +5,4 @@ import * as github from '@actions/github';
  * @returns Github Context
  */
 const getGithubContext = () => github.context;
-
 export { getGithubContext };

@@ -1,13 +1,16 @@
-import type { GithubDeploymentStatusState } from '../types';
+import type { GithubDeploymentStatusState } from '@/types';
 
 /**
  * 액션에서 필수적으로 사용되는 입력되어야 할 키 값입니다.
  * **/
-const ACTION_REQUIRED_INPUT_KEY = [
+const ACTION_REQUIRED_INPUT_KEY_LIST = [
   'token', // GitHub Token
-  'extractionPoint', // 본문을 추출할 기점 해당 기점 문자열 ex) "## 리뷰 요약 정보"
+  'extractionStartPoint', // 본문을 추출할 기점 해당 기점 문자열 ex) "## 리뷰 요약 정보"
   'slackWebhookURL', // Slack Webhook URL
+  'projectConfig', //
 ] as const;
+
+const ACTION_INPUT_KEY_LIST = [...ACTION_REQUIRED_INPUT_KEY_LIST, 'extractionEndPoint'] as const;
 
 /**
  * Slack 메시지의 최대 길이입니다.

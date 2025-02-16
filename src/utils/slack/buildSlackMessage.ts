@@ -12,28 +12,25 @@ interface BuildSlackMessageProps {
     owner: string;
     baseBranchName: string;
   };
-  repositoryName: string;
+  titleMessage: string;
   deployStatus?: 'success' | 'fail';
 }
 
 const buildSlackMessage = ({
   pullRequest: { title, url, number, body, owner, baseBranchName },
-  repositoryName,
+  titleMessage,
   deployStatus = 'success',
 }: BuildSlackMessageProps): SlackMessagePayload => {
-  const deployStatusMessage = deployStatus === 'fail' ? '실패' : '완료';
-  const titleMessage = `${repositoryName}에서 배포가 ${deployStatusMessage}되었습니다.`;
-
   const fields: TextObject[] = [
     {
       type: 'mrkdwn',
-      text: `*merge 된 브랜치:*\n ${baseBranchName}`,
+      text: `*merge 된 브랜치:* ${baseBranchName}`,
     },
     {
       type: 'mrkdwn',
-      text: `*PR 담당자:*\n ${owner}`,
+      text: `*PR 담당자:* ${owner}`,
     },
-    { type: 'mrkdwn', text: `*PR*:\n <${url}|${title} - #${number}>` },
+    { type: 'mrkdwn', text: `*PR*: <${url}|${title} - #${number}>` },
   ];
 
   const blocks: SlackMessagePayload['blocks'] = [

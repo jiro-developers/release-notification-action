@@ -32543,7 +32543,7 @@ var __webpack_exports__ = {};
 __nccwpck_require__.r(__webpack_exports__);
 
 // EXTERNAL MODULE: ./node_modules/.pnpm/@actions+core@1.11.1/node_modules/@actions/core/lib/core.js
-var core = __nccwpck_require__(1078);
+var lib_core = __nccwpck_require__(1078);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@atomist+slack-messages@1.2.2/node_modules/@atomist/slack-messages/index.js
 var slack_messages = __nccwpck_require__(3781);
 // EXTERNAL MODULE: ./node_modules/.pnpm/brace-expansion@2.0.1/node_modules/brace-expansion/index.js
@@ -34343,11 +34343,14 @@ minimatch.unescape = unescape_unescape;
 /**
  * 액션에서 필수적으로 사용되는 입력되어야 할 키 값입니다.
  * **/
-const ACTION_REQUIRED_INPUT_KEY = [
+const ACTION_REQUIRED_INPUT_KEY_LIST = [
     'token', // GitHub Token
-    'extractionPoint', // 본문을 추출할 기점 해당 기점 문자열 ex) "## 리뷰 요약 정보"
+    'extractionStartPoint', // 본문을 추출할 기점 해당 기점 문자열 ex) "## 리뷰 요약 정보"
     'slackWebhookURL', // Slack Webhook URL
+    'projectConfig', //
 ];
+const ACTION_OPTIONAL_INPUT_KEY_LIST = ['extractionEndPoint'];
+const ACTION_INPUT_KEY_LIST = [...ACTION_REQUIRED_INPUT_KEY_LIST, ...ACTION_OPTIONAL_INPUT_KEY_LIST];
 /**
  * Slack 메시지의 최대 길이입니다.
  * @see https://api.slack.com/methods/chat.postMessage
@@ -34358,6 +34361,17 @@ const ACTION_REQUIRED_INPUT_KEY = [
 const MAX_LENGTH_OF_SLACK_MESSAGE = 4_000;
 const DEPLOY_ERROR_STATUS_LIST = ['failure', 'error'];
 const DEPLOY_SUCCEED_STATUS_LIST = ['success'];
+
+
+;// CONCATENATED MODULE: ./src/utils/common.ts
+const common_safeJsonParse = (jsonString) => {
+    try {
+        return JSON.parse(jsonString);
+    }
+    catch {
+        return null;
+    }
+};
 
 
 ;// CONCATENATED MODULE: ./src/utils/extractSection.ts
@@ -34397,7 +34411,7 @@ const extractSection = (input, extractionStartPoint, extractionEndPoint) => {
 
 // EXTERNAL MODULE: ./node_modules/.pnpm/@actions+github@6.0.0/node_modules/@actions/github/lib/github.js
 var github = __nccwpck_require__(7738);
-;// CONCATENATED MODULE: ./src/utils/github/getGithubContext.ts
+;// CONCATENATED MODULE: ./src/utils/github/context/getGithubContext.ts
 
 /**
  * GitHub Context를 가져옵니다.
@@ -34406,7 +34420,97 @@ var github = __nccwpck_require__(7738);
 const getGithubContext = () => github.context;
 
 
-;// CONCATENATED MODULE: ./src/utils/github/getPullRequestInfo.ts
+;// CONCATENATED MODULE: ./src/utils/github/commit/getChangedFileListFromCommit.ts
+
+
+const getChangedFileListFromCommit = async (token, commitHash) => {
+    const { issue: { owner, repo }, } = getGithubContext();
+    const octokit = github.getOctokit(token);
+    const data = await octokit.rest.repos.getCommit({
+        ref: commitHash,
+        owner,
+        repo,
+    });
+    if (!data) {
+        return [];
+    }
+    if (!data.data.files) {
+        return [];
+    }
+    return data.data.files;
+};
+
+
+;// CONCATENATED MODULE: ./src/utils/github/deployment/getDeployInformationFromContext.ts
+
+const getDeployInformationFromContext = () => {
+    const { payload } = getGithubContext();
+    const deploymentStatus = payload.deployment_status?.state;
+    const deployEnvironment = payload?.deployment?.environment;
+    const deployCommitSha = payload?.deployment?.sha;
+    return {
+        deploymentStatus,
+        deployEnvironment,
+        deployCommitSha,
+    };
+};
+
+
+;// CONCATENATED MODULE: ./src/utils/findMatchedProjectConfig.ts
+
+
+
+
+
+const findMatchedProjectConfig = async ({ projectConfig, token, baseBranchName, commitSha, }) => {
+    const parsedProjects = common_safeJsonParse(projectConfig);
+    const { deployEnvironment } = getDeployInformationFromContext();
+    if (!parsedProjects) {
+        lib_core.error('JSON parsing error occurred,');
+        return;
+    }
+    const changedFileNameFromCommitHash = await getChangedFileListFromCommit(token, commitSha).then((files) => {
+        return files.map((file) => file.filename);
+    });
+    // parse 된 프로젝트 설정 중 현재 열린 pullRequest 에 baseBranchName 에 해당하는 프로젝트를 찾습니다.
+    return parsedProjects.find((projectConfig) => {
+        const isMatchedBranch = minimatch(baseBranchName, projectConfig.triggerBranch, {
+            nobrace: false,
+        });
+        const isMatchedFilePath = changedFileNameFromCommitHash.some((changedFileName) => {
+            return minimatch(changedFileName, projectConfig.triggerFilePath);
+        });
+        const isMatchedDeployEnvironment = minimatch(deployEnvironment, projectConfig.stage, {
+            nobrace: false,
+            nocase: true,
+        });
+        return isMatchedBranch && isMatchedFilePath && isMatchedDeployEnvironment;
+    });
+};
+
+
+;// CONCATENATED MODULE: ./src/utils/github/context/checkRequiredInputList.ts
+const checkRequiredInputList = (requiredInputList) => {
+    return requiredInputList.some((input) => !input);
+};
+
+
+;// CONCATENATED MODULE: ./src/utils/github/getGithubCoreInput.ts
+
+
+
+const getGithubCoreInput = () => {
+    const result = Object.fromEntries(ACTION_INPUT_KEY_LIST.map((key) => [key, lib_core.getInput(key)]));
+    lib_core.info(JSON.stringify(result));
+    return result;
+};
+const getProjectConfigFromInput = () => {
+    const projectConfig = core.getInput('projectConfig');
+    return safeJsonParse(projectConfig);
+};
+
+
+;// CONCATENATED MODULE: ./src/utils/github/pullRequest/getPullRequestInfo.ts
 
 
 
@@ -34426,17 +34530,17 @@ const getPullRequestInfo = async (token, pullRequestNumber) => {
             repo,
             pull_number: pullRequestNumber,
         });
-        core.info(`Owner: ${owner}, Repo: ${repo}, PR Number: ${pullRequestNumber}`);
+        lib_core.info(`Owner: ${owner}, Repo: ${repo}, PR Number: ${pullRequestNumber}`);
         return pullRequestData;
     }
     catch {
-        core.setFailed(`Failed to retrieve PR info`);
+        lib_core.setFailed(`Failed to retrieve PR info`);
         return null;
     }
 };
 
 
-;// CONCATENATED MODULE: ./src/utils/github/getPullRequestFromCommit.ts
+;// CONCATENATED MODULE: ./src/utils/github/pullRequest/getPullRequestFromCommit.ts
 
 
 
@@ -34458,17 +34562,17 @@ const getPullRequestFromCommit = async (token) => {
         if (prList.length > 0) {
             return prList[0];
         }
-        core.info('No associated PR found for this commit.');
+        lib_core.info('No associated PR found for this commit.');
         return null;
     }
     catch {
-        core.setFailed(`Failed to retrieve PR from commit`);
+        lib_core.setFailed(`Failed to retrieve PR from commit`);
         return null;
     }
 };
 
 
-;// CONCATENATED MODULE: ./src/utils/github/getPullRequestNumber.ts
+;// CONCATENATED MODULE: ./src/utils/github/pullRequest/getPullRequestNumber.ts
 
 
 
@@ -34488,7 +34592,7 @@ const getPullRequestNumber = async (token) => {
     const { sha, payload: { pull_request }, issue: { owner, repo, number }, } = getGithubContext();
     const pullRequestNumberFromContext = pull_request?.number ?? number;
     if (pullRequestNumberFromContext) {
-        core.info(`Found PR number: ${pullRequestNumberFromContext} from context.`);
+        lib_core.info(`Found PR number: ${pullRequestNumberFromContext} from context.`);
         return pullRequestNumberFromContext;
     }
     const { data: pullRequestList } = await octokit.rest.pulls.list({
@@ -34498,34 +34602,32 @@ const getPullRequestNumber = async (token) => {
     });
     const matchingPR = pullRequestList.find((pr) => pr.head.sha === sha);
     if (matchingPR) {
-        core.info(`Found PR number: ${matchingPR.number} using head SHA.`);
+        lib_core.info(`Found PR number: ${matchingPR.number} using head SHA.`);
         return matchingPR.number;
     }
-    core.info(`No matching PR found with head SHA. Falling back to commit API.`);
+    lib_core.info(`No matching PR found with head SHA. Falling back to commit API.`);
     const pullRequestNumberFromCommit = await getPullRequestFromCommit(token).then((pr) => pr?.number);
     if (!pullRequestNumberFromCommit) {
         throw new Error(`Unable to find PR associated with commit SHA: ${sha}`);
     }
-    core.info(`Found PR number: ${pullRequestNumberFromCommit} using commit API.`);
+    lib_core.info(`Found PR number: ${pullRequestNumberFromCommit} using commit API.`);
     return pullRequestNumberFromCommit;
 };
 
 
 ;// CONCATENATED MODULE: ./src/utils/slack/buildSlackMessage.ts
 
-const buildSlackMessage = ({ pullRequest: { title, url, number, body, owner, baseBranchName }, repositoryName, deployStatus = 'success', }) => {
-    const deployStatusMessage = deployStatus === 'fail' ? '실패' : '완료';
-    const titleMessage = `${repositoryName}에서 배포가 ${deployStatusMessage}되었습니다.`;
+const buildSlackMessage = ({ pullRequest: { title, url, number, body, owner, baseBranchName }, titleMessage, deployStatus = 'success', }) => {
     const fields = [
         {
             type: 'mrkdwn',
-            text: `*merge 된 브랜치:*\n ${baseBranchName}`,
+            text: `*merge 된 브랜치:* ${baseBranchName}`,
         },
         {
             type: 'mrkdwn',
-            text: `*PR 담당자:*\n ${owner}`,
+            text: `*PR 담당자:* ${owner}`,
         },
-        { type: 'mrkdwn', text: `*PR*:\n <${url}|${title} - #${number}>` },
+        { type: 'mrkdwn', text: `*PR*: <${url}|${title} - #${number}>` },
     ];
     const blocks = [
         {
@@ -34562,7 +34664,7 @@ const buildSlackMessage = ({ pullRequest: { title, url, number, body, owner, bas
 ;// CONCATENATED MODULE: ./src/utils/slack/sendSlackMessage.ts
 
 const sendSlackMessage = async ({ webhookURL, payload }) => {
-    core.info(`Sending a message to Slack...${webhookURL}`);
+    lib_core.info(`Sending a message to Slack...${webhookURL}`);
     const response = await fetch(webhookURL, {
         method: 'POST',
         headers: {
@@ -34588,67 +34690,48 @@ const sendSlackMessage = async ({ webhookURL, payload }) => {
 
 
 
+
+
+
+
+
+
 const run = async () => {
     try {
-        core.info('Start to run the action.');
-        const { issue: { number, repo }, payload, } = getGithubContext();
-        const deploymentStatus = payload.deployment_status?.state;
-        const deployEnvironment = payload?.deployment?.environment;
-        const deploySha = payload?.deployment?.sha;
+        lib_core.info('Start to run the action.');
+        // [INFO] 해당 워크플로우에 필요한 인풋을 가져옵니다.
+        const { token, extractionStartPoint, slackWebhookURL, extractionEndPoint, projectConfig } = getGithubCoreInput();
+        // [ERROR] 필수 입력값(ACTION_REQUIRED_INPUT_KEY) 누락 시 에러 처리 합니다.
+        const hasMissingInput = checkRequiredInputList([token, extractionStartPoint, slackWebhookURL, projectConfig]);
+        if (hasMissingInput) {
+            const missingInputKeys = ACTION_REQUIRED_INPUT_KEY_LIST.filter((key) => !lib_core.getInput(key));
+            lib_core.error(`Missing required inputs: ${missingInputKeys.join(', ')}`);
+            return;
+        }
+        /**------------------------ INPUT 검증 종료 -----------------------------**/
+        const { deploymentStatus, deployCommitSha } = getDeployInformationFromContext();
         // [INFO] 배포 상태가 DEPLOY_SUCCEED_STATUS_LIST 와 DEPLOY_ERROR_STATUS_LIST 에 해당 되지 않을 경우 로딩 상태로 취급 하고 종료합니다.
         const isPendingStatus = ![...DEPLOY_SUCCEED_STATUS_LIST, ...DEPLOY_ERROR_STATUS_LIST].includes(deploymentStatus);
         if (isPendingStatus) {
-            core.info(`Deployment is loading. ${deploymentStatus}`);
+            lib_core.info(`Deployment is loading. ${deploymentStatus}`);
             return;
         }
-        // [INFO] 해당 워크플로우에 필요한 인풋을 가져옵니다.
-        const token = core.getInput('token');
-        const extractionStartPoint = core.getInput('extractionStartPoint');
-        const extractionEndPoint = core.getInput('extractionEndPoint');
-        const slackWebhookURL = core.getInput('slackWebhookURL');
-        const specificBranchPattern = core.getInput('specificBranchPattern');
-        const specificDeployEnvironment = core.getInput('specificDeployEnvironment');
-        core.info(`
-      [USER INPUT] \n
-      token: ${token} \n 
-      extractionStartPoint: ${extractionStartPoint} \n 
-      extractionEndPoint: ${extractionEndPoint} \n 
-      slackWebhookURL: ${slackWebhookURL} \n 
-      specificBranchPattern: ${specificBranchPattern} \n 
-      specificDeployEnvironment: ${specificDeployEnvironment}`);
-        const isMatchedDeployEnvironment = minimatch(deployEnvironment, specificDeployEnvironment, {
-            nobrace: false,
-            nocase: true,
-        });
-        // specificDeployEnvironment 패턴이 들어왔고, 해당 패턴에 매칭되지 않는 Deploy Environment 경우 실행시키지 않습니다.
-        if (specificDeployEnvironment && !isMatchedDeployEnvironment) {
-            core.info(`The Deploy Environment ${deployEnvironment} does not match the pattern ${specificDeployEnvironment}.`);
-            return;
-        }
-        // [ERROR] ACTION_REQUIRED_INPUT_KEY 에 해당하는 인풋이 없을 경우 에러를 발생시킵니다.
-        if (!token || !extractionStartPoint || !slackWebhookURL) {
-            const missingInputs = ACTION_REQUIRED_INPUT_KEY.filter((input) => !core.getInput(input));
-            core.error(`Missing required inputs: ${missingInputs.join(', ')}`);
-            return;
-        }
+        /**------------------------ 배포 상태 검증 종료 -----------------------------**/
         const pullRequestNumber = await getPullRequestNumber(token);
         if (!pullRequestNumber) {
-            core.error('No PR number found.');
+            lib_core.error('Could not find the Pull Request number');
             return;
         }
         // [INFO] 해당 PR의 정보를 가져옵니다.
         const pullRequestInfo = await getPullRequestInfo(token, pullRequestNumber);
         if (!pullRequestInfo) {
-            core.error('No PR data found.');
+            lib_core.error('Could not find the Pull Request information.');
             return;
         }
-        const { title, body, html_url, head, user, assignees, merge_commit_sha, base: { ref: baseBranchName }, } = pullRequestInfo;
-        const repositoryName = repo ?? head.repo?.name;
-        const pullRequestOwner = assignees?.map((assignee) => assignee.login).join(', ') ?? user.login;
-        const isMatchedBranch = minimatch(baseBranchName, specificBranchPattern, {
-            nobrace: false,
-        });
-        core.info(`
+        const { title, body, html_url, head, assignees, merge_commit_sha, user, base: { ref: baseBranchName }, } = pullRequestInfo;
+        const safeAssignees = assignees?.map((assignee) => assignee.login) ?? [];
+        const pullRequestOwner = [...new Set([user?.login, ...safeAssignees])].join(', ');
+        lib_core.info(`
     [PULL REQUEST INFO] \n
     title: ${title} \n
     html_url: ${html_url} \n
@@ -34657,23 +34740,35 @@ const run = async () => {
     assignees: ${assignees} \n
     merge_commit_sha: ${merge_commit_sha} \n
     baseBranchName: ${baseBranchName} \n
-    repositoryName: ${repositoryName} \n
-    pullRequestOwner: ${pullRequestOwner}`);
+    pullRequestOwner: ${pullRequestOwner}
+    `);
         // 머지가 되지 않았더라면, 실행 시키지 않습니다.
         if (!merge_commit_sha) {
-            core.info(`This PR was Not Merge`);
+            lib_core.error(`#${pullRequestNumber} - This Pull Request was Not Merge`);
             return;
         }
         // 머지 커밋과 deploy sha 와 같지 않으면 실행 시키지 않습니다.
-        if (merge_commit_sha !== deploySha) {
-            core.error(`This Sha was Not Same deploySha \n merge_commit_sha: ${merge_commit_sha} \n deploy_sha:${deploySha}`);
+        if (merge_commit_sha !== deployCommitSha) {
+            lib_core.error(`This Sha was Not Same deploySha \n merge_commit_sha: ${merge_commit_sha} \n deploy_sha:${deployCommitSha}`);
             return;
         }
-        // specificBranchPattern 패턴이 들어왔고, 해당 패턴에 매칭되지 않는 브랜치일 경우 실행시키지 않습니다.
-        if (specificBranchPattern && !isMatchedBranch) {
-            core.error(`The branch name ${baseBranchName} does not match the pattern ${specificBranchPattern}.`);
+        const parsedProjects = common_safeJsonParse(projectConfig);
+        if (!parsedProjects) {
+            lib_core.error('JSON parsing error occurred,');
             return;
         }
+        const matchedProject = await findMatchedProjectConfig({
+            token,
+            projectConfig,
+            commitSha: merge_commit_sha,
+            baseBranchName,
+        });
+        // [INFO] 해당 프로젝트 설정이 없을 경우 종료합니다.
+        if (!matchedProject) {
+            lib_core.error('No matching Condition found in the project settings');
+            return;
+        }
+        const { issue: { number }, } = getGithubContext();
         const pullRequestInformation = {
             title: title,
             url: html_url,
@@ -34683,11 +34778,11 @@ const run = async () => {
         };
         // [INFO] 배포 상태가 DEPLOY_ERROR_STATUS_LIST 에 해당 되는 경우 배포 실패 메시지를 보내고 종료합니다.
         if (DEPLOY_ERROR_STATUS_LIST.includes(deploymentStatus)) {
-            core.info(`Deployment is not success. ${deploymentStatus}`);
+            lib_core.info(`Deployment was Failure. ${deploymentStatus}`);
             await sendSlackMessage({
                 webhookURL: slackWebhookURL,
                 payload: buildSlackMessage({
-                    repositoryName,
+                    titleMessage: matchedProject.failedReleaseTitle,
                     pullRequest: pullRequestInformation,
                     deployStatus: 'fail',
                 }),
@@ -34696,21 +34791,21 @@ const run = async () => {
         }
         // [ERROR] PR의 body가 없을 경우 에러를 발생시킵니다.
         if (!body) {
-            core.error('No body provided.');
+            lib_core.error('No body provided.');
             return;
         }
         // [INFO] PR의 body에서 divideSection에 해당하는 섹션을 추출합니다.
         const extractedSection = extractSection(body, extractionStartPoint, extractionEndPoint);
         // [ERROR] 추출된 섹션이 없을 경우 에러를 발생시킵니다.
         if (!extractedSection) {
-            core.error('No section found.');
+            lib_core.error('Could not find the section.');
             return;
         }
         // [INFO] Slack 성공 메시지를 보냅니다.
         await sendSlackMessage({
             webhookURL: slackWebhookURL,
             payload: buildSlackMessage({
-                repositoryName,
+                titleMessage: matchedProject.successReleaseTitle,
                 pullRequest: {
                     ...pullRequestInformation,
                     body: (0,slack_messages.githubToSlack)(extractedSection),
@@ -34719,7 +34814,7 @@ const run = async () => {
         });
     }
     catch (error) {
-        core.setFailed(`Action failed: ${error.message}`);
+        lib_core.setFailed(`Action failed: ${error.message}`);
     }
 };
 run();

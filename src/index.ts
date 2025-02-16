@@ -73,18 +73,20 @@ const run = async (): Promise<void> => {
       base: { ref: baseBranchName },
     } = pullRequestInfo;
 
-    const safeAssignees = assignees?.map((assignee) => assignee.login) ?? [];
-    const pullRequestOwner = [...new Set([user?.login, ...safeAssignees])].join(', ');
+    // [ERROR] PR의 body가 없을 경우 에러를 발생시킵니다.
+    if (!body) {
+      coreLogger.error('No body provided.');
+      return;
+    }
 
-    coreLogger.info({
-      title,
-      html_url,
-      assignees,
-      merge_commit_sha,
-      user,
-      baseBranchName,
-      pullRequestOwner,
-    });
+    // [INFO] PR의 body에서 divideSection에 해당하는 섹션을 추출합니다.
+    const extractedSection = extractSection(body, extractionStartPoint, extractionEndPoint);
+
+    // [ERROR] 추출된 섹션이 없을 경우 에러를 발생시킵니다.
+    if (!extractedSection) {
+      coreLogger.error('Could not find the section.');
+      return;
+    }
 
     // 머지가 되지 않았더라면, 실행 시키지 않습니다.
     if (!merge_commit_sha) {
@@ -123,6 +125,9 @@ const run = async (): Promise<void> => {
       issue: { number },
     } = getGithubContext();
 
+    const safeAssignees = assignees?.map((assignee) => assignee.login) ?? [];
+    const pullRequestOwner = [...new Set([user?.login, ...safeAssignees])].join(', ');
+
     const pullRequestInformation = {
       title: title,
       url: html_url,
@@ -130,6 +135,10 @@ const run = async (): Promise<void> => {
       owner: pullRequestOwner,
       baseBranchName: baseBranchName,
     };
+
+    coreLogger.info({
+      pullRequestInformation,
+    });
 
     // [INFO] 배포 상태가 DEPLOY_ERROR_STATUS_LIST 에 해당 되는 경우 배포 실패 메시지를 보내고 종료합니다.
     if (DEPLOY_ERROR_STATUS_LIST.includes(deploymentStatus)) {
@@ -144,21 +153,6 @@ const run = async (): Promise<void> => {
         }),
       });
 
-      return;
-    }
-
-    // [ERROR] PR의 body가 없을 경우 에러를 발생시킵니다.
-    if (!body) {
-      coreLogger.error('No body provided.');
-      return;
-    }
-
-    // [INFO] PR의 body에서 divideSection에 해당하는 섹션을 추출합니다.
-    const extractedSection = extractSection(body, extractionStartPoint, extractionEndPoint);
-
-    // [ERROR] 추출된 섹션이 없을 경우 에러를 발생시킵니다.
-    if (!extractedSection) {
-      coreLogger.error('Could not find the section.');
       return;
     }
 

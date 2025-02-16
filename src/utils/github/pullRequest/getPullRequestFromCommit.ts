@@ -1,7 +1,7 @@
 import * as core from '@actions/core';
 import * as github from '@actions/github';
 
-import { getGithubContext } from './getGithubContext';
+import { getGithubContext } from '@/utils/github/context/getGithubContext';
 
 /**
  * 커밋 SHA를 사용하여 API 호출 한 뒤 PR을 가져옵니다.

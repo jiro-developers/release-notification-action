@@ -3,7 +3,7 @@ import * as github from '@actions/github';
 import type { RestEndpointMethodTypes } from '@octokit/plugin-rest-endpoint-methods';
 
 import { getGithubContext } from '@/utils/github/context/getGithubContext';
-import { coreLogger } from '@/utils/github/coreLogger';
+import { logger } from '@/utils/github/logger';
 
 /**
  * PR 정보를 가져옵니다.
@@ -26,7 +26,7 @@ const getPullRequestInfo = async (
       pull_number: pullRequestNumber,
     });
 
-    coreLogger.info({
+    logger.info({
       owner,
       repo,
       pull_number: pullRequestNumber,
@@ -34,7 +34,7 @@ const getPullRequestInfo = async (
 
     return pullRequestData;
   } catch {
-    coreLogger.setFailed(`Failed to retrieve PR info`);
+    logger.setFailed(`Failed to retrieve PR info`);
 
     return null;
   }

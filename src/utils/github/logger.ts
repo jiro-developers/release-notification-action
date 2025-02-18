@@ -12,7 +12,7 @@ const formatMessage = (value: unknown): string => {
   return String(value);
 };
 
-const coreLogger = {
+const logger = {
   error: (message: Message, properties?: core.AnnotationProperties) => {
     core.error(formatMessage(message), properties);
   },
@@ -27,4 +27,4 @@ const coreLogger = {
   },
 };
 
-export { coreLogger };
+export { logger };

@@ -1,7 +1,7 @@
 import * as github from '@actions/github';
 
 import { getGithubContext } from '@/utils/github/context/getGithubContext';
-import { coreLogger } from '@/utils/github/coreLogger';
+import { logger } from '@/utils/github/logger';
 import { getPullRequestFromCommit } from '@/utils/github/pullRequest/getPullRequestFromCommit';
 
 /**
@@ -25,7 +25,7 @@ const getPullRequestNumber = async (token: string): Promise<number> => {
   const pullRequestNumberFromContext = pull_request?.number ?? number;
 
   if (pullRequestNumberFromContext) {
-    coreLogger.info(`Found PR number: ${pullRequestNumberFromContext} from context.`);
+    logger.info(`Found PR number: ${pullRequestNumberFromContext} from context.`);
     return pullRequestNumberFromContext;
   }
 
@@ -38,18 +38,18 @@ const getPullRequestNumber = async (token: string): Promise<number> => {
   const matchingPR = pullRequestList.find((pr) => pr.head.sha === sha);
 
   if (matchingPR) {
-    coreLogger.info(`Found PR number: ${matchingPR.number} using head SHA.`);
+    logger.info(`Found PR number: ${matchingPR.number} using head SHA.`);
     return matchingPR.number;
   }
 
-  coreLogger.info(`No matching PR found with head SHA. Falling back to commit API.`);
+  logger.info(`No matching PR found with head SHA. Falling back to commit API.`);
   const pullRequestNumberFromCommit = await getPullRequestFromCommit(token).then((pr) => pr?.number);
 
   if (!pullRequestNumberFromCommit) {
     throw new Error(`Unable to find PR associated with commit SHA: ${sha}`);
   }
 
-  coreLogger.info(`Found PR number: ${pullRequestNumberFromCommit} using commit API.`);
+  logger.info(`Found PR number: ${pullRequestNumberFromCommit} using commit API.`);
   return pullRequestNumberFromCommit;
 };
 

@@ -43,7 +43,7 @@ const run = async (): Promise<void> => {
     // [INFO] 배포 상태가 DEPLOY_SUCCEED_STATUS_LIST 와 DEPLOY_ERROR_STATUS_LIST 에 해당 되지 않을 경우 로딩 상태로 취급 하고 종료합니다.
     const isPendingStatus = ![...DEPLOY_SUCCEED_STATUS_LIST, ...DEPLOY_ERROR_STATUS_LIST].includes(deploymentStatus);
     if (isPendingStatus) {
-      coreLogger.info(`Deployment is loading. ${deploymentStatus}`);
+      logger.info(`Deployment is loading. ${deploymentStatus}`);
       return;
     }
     /**------------------------ 배포 상태 검증 종료 -----------------------------**/
@@ -51,7 +51,7 @@ const run = async (): Promise<void> => {
     const pullRequestNumber = await getPullRequestNumber(token);
 
     if (!pullRequestNumber) {
-      coreLogger.error('Could not find the Pull Request number');
+      logger.error('Could not find the Pull Request number');
       return;
     }
 
@@ -59,7 +59,7 @@ const run = async (): Promise<void> => {
     const pullRequestInfo = await getPullRequestInfo(token, pullRequestNumber);
 
     if (!pullRequestInfo) {
-      coreLogger.error('Could not find the Pull Request information.');
+      logger.error('Could not find the Pull Request information.');
       return;
     }
 
@@ -75,7 +75,7 @@ const run = async (): Promise<void> => {
 
     // [ERROR] PR의 body가 없을 경우 에러를 발생시킵니다.
     if (!body) {
-      coreLogger.error('No body provided.');
+      logger.error('No body provided.');
       return;
     }
 
@@ -84,40 +84,40 @@ const run = async (): Promise<void> => {
 
     // [ERROR] 추출된 섹션이 없을 경우 에러를 발생시킵니다.
     if (!extractedSection) {
-      coreLogger.error('Could not find the section.');
+      logger.error('Could not find the section.');
       return;
     }
 
     // 머지가 되지 않았더라면, 실행 시키지 않습니다.
     if (!merge_commit_sha) {
-      coreLogger.error(`#${pullRequestNumber} - This Pull Request was Not Merge`);
+      logger.error(`#${pullRequestNumber} - This Pull Request was Not Merge`);
       return;
     }
 
     // 머지 커밋과 deploy sha 와 같지 않으면 실행 시키지 않습니다.
     if (merge_commit_sha !== deployCommitSha) {
-      coreLogger.error(
+      logger.error(
         `This Sha was Not Same deploySha \n merge_commit_sha: ${merge_commit_sha} \n deploy_sha:${deployCommitSha}`
       );
       return;
     }
 
-    const parsedProjects = safeJsonParse<ProjectConfig[]>(projectConfig);
-    if (!parsedProjects) {
-      coreLogger.error('JSON parsing error occurred,');
+    const parsedProjectConfig = safeJsonParse<ProjectConfig[]>(projectConfig);
+    if (!parsedProjectConfig) {
+      logger.error('JSON parsing error occurred,');
       return;
     }
 
     const matchedProject = await findMatchedProjectConfig({
       token,
-      projectConfig,
+      parseProjectConfig: parsedProjectConfig,
       commitSha: merge_commit_sha,
       baseBranchName,
     });
 
     // [INFO] 해당 프로젝트 설정이 없을 경우 종료합니다.
     if (!matchedProject) {
-      coreLogger.error('No matching Condition found in the project settings');
+      logger.error('No matching Condition found in the project settings');
       return;
     }
 
@@ -136,13 +136,13 @@ const run = async (): Promise<void> => {
       baseBranchName: baseBranchName,
     };
 
-    coreLogger.info({
+    logger.info({
       pullRequestInformation,
     });
 
     // [INFO] 배포 상태가 DEPLOY_ERROR_STATUS_LIST 에 해당 되는 경우 배포 실패 메시지를 보내고 종료합니다.
     if (DEPLOY_ERROR_STATUS_LIST.includes(deploymentStatus)) {
-      coreLogger.info(`Deployment was Failure. ${deploymentStatus}`);
+      logger.info(`Deployment was Failure. ${deploymentStatus}`);
 
       await sendSlackMessage({
         webhookURL: slackWebhookURL,
@@ -168,7 +168,7 @@ const run = async (): Promise<void> => {
       }),
     });
   } catch (error) {
-    coreLogger.setFailed(`Action failed: ${(error as Error).message}`);
+    logger.setFailed(`Action failed: ${(error as Error).message}`);
   }
 };
 

@@ -9,21 +9,21 @@ const getChangedFileListFromCommit = async (token: string, commitHash: string) =
 
   const octokit = github.getOctokit(token);
 
-  const data = await octokit.rest.repos.getCommit({
+  const commit = await octokit.rest.repos.getCommit({
     ref: commitHash,
     owner,
     repo,
   });
 
-  if (!data) {
+  if (!commit) {
     return [];
   }
 
-  if (!data.data.files) {
+  if (!commit.data.files) {
     return [];
   }
 
-  return data.data.files;
+  return commit.data.files;
 };
 
 export { getChangedFileListFromCommit };

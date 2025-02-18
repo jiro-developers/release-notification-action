@@ -2,7 +2,7 @@ import * as core from '@actions/core';
 import * as github from '@actions/github';
 
 import { getGithubContext } from '@/utils/github/context/getGithubContext';
-import { coreLogger } from '@/utils/github/coreLogger';
+import { logger } from '@/utils/github/logger';
 
 /**
  * 커밋 SHA를 사용하여 API 호출 한 뒤 PR을 가져옵니다.
@@ -28,10 +28,10 @@ const getPullRequestFromCommit = async (token: string) => {
       return prList[0];
     }
 
-    coreLogger.info('No associated PR found for this commit.');
+    logger.info('No associated PR found for this commit.');
     return null;
   } catch {
-    coreLogger.setFailed(`Failed to retrieve PR from commit`);
+    logger.setFailed(`Failed to retrieve PR from commit`);
     return null;
   }
 };

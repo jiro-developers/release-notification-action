@@ -1,13 +1,13 @@
-import * as core from '@actions/core';
-
 import type { SlackMessagePayload } from './buildSlackMessage';
+
+import { logger } from '@/utils/github/logger';
 
 interface SendSlackMessageProps {
   webhookURL: string;
   payload: SlackMessagePayload;
 }
 const sendSlackMessage = async ({ webhookURL, payload }: SendSlackMessageProps) => {
-  core.info(`Sending a message to Slack...${webhookURL}`);
+  logger.info(`Sending a message to Slack...${webhookURL}`);
 
   const response = await fetch(webhookURL, {
     method: 'POST',

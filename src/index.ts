@@ -104,7 +104,7 @@ const run = async (): Promise<void> => {
 
     const matchedProject = await findMatchedProjectConfig({
       token,
-      parseProjectConfig: parsedProjectConfig,
+      parsedProjectConfig,
       commitSha: merge_commit_sha,
       baseBranchName,
     });

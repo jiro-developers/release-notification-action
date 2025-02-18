@@ -34492,13 +34492,13 @@ const logger = {
 
 
 
-const findMatchedProjectConfig = async ({ parseProjectConfig, token, baseBranchName, commitSha, }) => {
+const findMatchedProjectConfig = async ({ parsedProjectConfig, token, baseBranchName, commitSha, }) => {
     const { deployEnvironment } = getDeployInformationFromContext();
     const changedFileNameFromCommitHash = await getChangedFileListFromCommit(token, commitSha).then((files) => {
         return files.map((file) => file.filename);
     });
     // parse 된 프로젝트 설정 중 현재 열린 pullRequest 에 baseBranchName 에 해당하는 프로젝트를 찾습니다.
-    return parseProjectConfig.find((projectConfig) => {
+    return parsedProjectConfig.find((projectConfig) => {
         const isMatchedBranch = minimatch(baseBranchName, projectConfig.triggerBranch, {
             nobrace: false,
         });
@@ -34789,7 +34789,7 @@ const run = async () => {
         }
         const matchedProject = await findMatchedProjectConfig({
             token,
-            parseProjectConfig: parsedProjectConfig,
+            parsedProjectConfig,
             commitSha: merge_commit_sha,
             baseBranchName,
         });

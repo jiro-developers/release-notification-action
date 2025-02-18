@@ -6,13 +6,13 @@ import { getDeployInformationFromContext } from '@/utils/github/deployment/getDe
 import { logger } from '@/utils/github/logger';
 
 interface FindMatchedProjectConfigProps {
-  parseProjectConfig: ProjectConfig[];
+  parsedProjectConfig: ProjectConfig[];
   token: string;
   baseBranchName: string;
   commitSha: string;
 }
 const findMatchedProjectConfig = async ({
-  parseProjectConfig,
+  parsedProjectConfig,
   token,
   baseBranchName,
   commitSha,
@@ -24,7 +24,7 @@ const findMatchedProjectConfig = async ({
   });
 
   // parse 된 프로젝트 설정 중 현재 열린 pullRequest 에 baseBranchName 에 해당하는 프로젝트를 찾습니다.
-  return parseProjectConfig.find((projectConfig) => {
+  return parsedProjectConfig.find((projectConfig) => {
     const isMatchedBranch = minimatch(baseBranchName, projectConfig.triggerBranch, {
       nobrace: false,
     });

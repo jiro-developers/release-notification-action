@@ -1,20 +1,14 @@
-import * as core from '@actions/core';
 import { githubToSlack } from '@atomist/slack-messages';
 
-import {
-  ACTION_REQUIRED_INPUT_KEY_LIST,
-  DEPLOY_ERROR_STATUS_LIST,
-  DEPLOY_SUCCEED_STATUS_LIST,
-} from '@/constants/common';
+import { DEPLOY_ERROR_STATUS_LIST, DEPLOY_SUCCEED_STATUS_LIST } from '@/constants/common';
 import type { ProjectConfig } from '@/types';
 import { safeJsonParse } from '@/utils/common';
 import { extractSection } from '@/utils/extractSection';
 import { findMatchedProjectConfig } from '@/utils/findMatchedProjectConfig';
-import { checkRequiredInputList } from '@/utils/github/context/checkRequiredInputList';
 import { getGithubContext } from '@/utils/github/context/getGithubContext';
-import { coreLogger } from '@/utils/github/coreLogger';
 import { getDeployInformationFromContext } from '@/utils/github/deployment/getDeployInformationFromContext';
 import { getGithubCoreInput } from '@/utils/github/getGithubCoreInput';
+import { logger } from '@/utils/github/logger';
 import { getPullRequestInfo } from '@/utils/github/pullRequest/getPullRequestInfo';
 import { getPullRequestNumber } from '@/utils/github/pullRequest/getPullRequestNumber';
 import { buildSlackMessage } from '@/utils/slack/buildSlackMessage';
@@ -22,20 +16,20 @@ import { sendSlackMessage } from '@/utils/slack/sendSlackMessage';
 
 const run = async (): Promise<void> => {
   try {
-    core.info('Start to run the action.');
+    logger.info('Start to run the action.');
 
-    // [INFO] 해당 워크플로우에 필요한 인풋을 가져옵니다.
-    const { token, extractionStartPoint, slackWebhookURL, extractionEndPoint, projectConfig } = getGithubCoreInput();
-
-    // [ERROR] 필수 입력값(ACTION_REQUIRED_INPUT_KEY) 누락 시 에러 처리 합니다.
-    const hasMissingInput = checkRequiredInputList([token, extractionStartPoint, slackWebhookURL, projectConfig]);
-
-    if (hasMissingInput) {
-      const missingInputKeys = ACTION_REQUIRED_INPUT_KEY_LIST.filter((key) => !core.getInput(key));
-      coreLogger.error(`Missing required inputs: ${missingInputKeys.join(', ')}`);
-
+    /**
+     * [INFO] 해당 워크플로우에 필요한 인풋을 가져옵니다.
+     * 내부적으로 core.getInput을 사용하여 필요한 인풋을 가져오며, 필요한 인풋이 없을 경우 에러를 발생시킵니다.
+     * 만약 필수값이 없는 경우 null을 반환합니다.
+     * **/
+    const inputList = getGithubCoreInput();
+    if (!inputList) {
       return;
     }
+
+    const { token, extractionStartPoint, slackWebhookURL, extractionEndPoint, projectConfig } = inputList;
+
     /**------------------------ INPUT 검증 종료 -----------------------------**/
 
     const { deploymentStatus, deployCommitSha } = getDeployInformationFromContext();

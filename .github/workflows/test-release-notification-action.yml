@@ -17,14 +17,25 @@ jobs:
           extractionStartPoint: '###### == 릴리즈 내용 시작 =='
           extractionEndPoint: '###### == 릴리즈 내용 종료 =='
           slackWebhookURL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          autoLinkConfig: >
+            [
+              {
+                "targetURL": "https://www.google.com/search?q=<target>",
+                "prefix": "DD-"
+              },
+              {
+                "targetURL": "https://www.google.com/search?q=<target>",
+                "prefix": "TEST-"
+              }
+            ]
           projectConfig: >
             [
               {
-                "projectName": "mystery project - DEV",
-                "stage": "**",     
+                "projectName": "Stock Web",
+                "stage": "**",
                 "triggerBranch": "main",
-                "triggerFilePath": "**",    
-                "successReleaseTitle": "mystery project DEV 클라이언트가 업데이트됐습니다.", 
-                "failedReleaseTitle": "mystery project DEV 클라이언트가 배포에 실패했습니다."
+                "triggerFilePath": "**",
+                "successReleaseTitle": "스톡 웹 DEV 클라이언트가 업데이트됐습니다.",
+                "failedReleaseTitle": "스톡 웹 DEV 클라이언트가 배포에 실패했습니다."
               }
             ]

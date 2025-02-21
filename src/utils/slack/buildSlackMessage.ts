@@ -30,7 +30,6 @@ const buildSlackMessage = ({
       type: 'mrkdwn',
       text: `*PR 담당자:* ${owner}`,
     },
-    { type: 'mrkdwn', text: `*PR*: <${url}|${title} - #${number}>` },
   ];
 
   const blocks: SlackMessagePayload['blocks'] = [
@@ -47,6 +46,10 @@ const buildSlackMessage = ({
     {
       type: 'section',
       fields,
+    },
+    {
+      type: 'section',
+      fields: [{ type: 'mrkdwn', text: `*PR*:\n <${url}|${title}-#${number}>}` }],
     },
   ];
 

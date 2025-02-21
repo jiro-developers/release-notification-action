@@ -9,13 +9,14 @@
 
 ## Inputs
 
-| 값                      | 설명                                                                                                       | 필수여부 |
-|------------------------|----------------------------------------------------------------------------------------------------------|------|
-| `token`                | GitHub에서 제공하는 토큰.                                                                                        | O    |
-| `extractionStartPoint` | 본문을 추출할 시작 지점. 해당 지점부터 최하단까지 정보를 긁어옵니다. (예: `'## == 릴리즈 내용 시작 =='`)                                      | O    |
-| `extractionEndPoint`   | 본문을 추출할 종료 지점. 해당 기점까지만 추출됩니다. (예: `'## == 릴리즈 내용 종료 =='`). 값이 없으면 `extractionStartPoint` 기점으로 모든 값을 추출. | X    |
-| `slackWebhookURL`      | Slack 메시지 전송을 위한 웹훅 URL.                                                                                 | O    |
-| `projectConfig`        | 배포 알림 설정을 위한 JSON 배열 형식의 프로젝트 설정.                                                                        | O    |
+| 값                          | 설명                                                                                                       | 필수여부 |
+|----------------------------|----------------------------------------------------------------------------------------------------------|------|
+| `token`                    | GitHub에서 제공하는 토큰.                                                                                        | O    |
+| `extractionStartPoint`     | 본문을 추출할 시작 지점. 해당 지점부터 최하단까지 정보를 긁어옵니다. (예: `'## == 릴리즈 내용 시작 =='`)                                      | O    |
+| `extractionEndPoint`       | 본문을 추출할 종료 지점. 해당 기점까지만 추출됩니다. (예: `'## == 릴리즈 내용 종료 =='`). 값이 없으면 `extractionStartPoint` 기점으로 모든 값을 추출. | X    |
+| `slackWebhookURL`          | Slack 메시지 전송을 위한 웹훅 URL.                                                                                 | O    |
+| `projectConfig`            | 배포 알림 설정을 위한 JSON 배열 형식의 프로젝트 설정.                                                                        | O    |
+| `autoLinkConfig`           | 지라 등 특정 패스를 감지하여 링크로 변경해주기 위한 설정입니다.                                                                     | X    |
 
 ## Example
 
@@ -36,6 +37,17 @@ jobs:
           extractionStartPoint: '## == 릴리즈 내용 시작 =='
           extractionEndPoint: '## == 릴리즈 내용 종료 =='
           slackWebHookURL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          autoLinkConfig: >
+            [
+              {
+                "targetURL": "https://www.google.com/search?q=<target>",
+                "prefix": "DD-"
+              },
+              {
+                "targetURL": "https://www.google.com/search?q=<target>",
+                "prefix": "TEST-"
+              }
+            ]
           projectConfig: >
             [
               {
@@ -56,6 +68,9 @@ jobs:
               }
             ]
 ```
+
+
+
 
 ## projectConfig Fields
 
@@ -99,6 +114,18 @@ jobs:
 ### failedReleaseTitle
 
 - 배포 실패 시 출력될 메시지를 설정합니다.
+
+
+
+## autoLinkConfig Fields
+해당 필드는 필수값이 아니지만, 만약 해당 기능을 사용한다면, 내부값들은 전부 필수값입니다. 
+
+| 필드명      | 설명                                                                                                                                                                                                                                                                       |
+|-------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `prefix`    | 지라 티켓 등 베이스가 되는 프리픽스 예: `ANYTHING-`                                                                                                                                                                                                                                      |
+| `targetURL` | 변경될 링크의 기본 URL. `<target>` 부분은 `prefix` 뒤에 오는 실제 값으로 대체됩니다. 예를 들어, `ANYTHING-1a23v`에서 `targetURL` 값은 `https://www.google.com/search?q=1a23v` 와 같이 생성됩니다. `targetURL` `<target>` 부분이 포함되어야 하며, 이 부분은 `prefix` 뒤의 값으로 대체됩니다. 예: `https://www.google.com/search?q=<target>` |
+
+ 
 
 ## Example With `extractionStartPoint` and `extractionEndPoint`
 

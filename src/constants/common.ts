@@ -17,6 +17,7 @@ const ACTION_REQUIRED_INPUT_KEY_LIST: RequiredActionInputKey[] = [
 
 const ACTION_OPTIONAL_INPUT_KEY_LIST: OptionalActionInputKey[] = [
   'extractionEndPoint', // 본문을 추출할 종료 지점에 해당되는 문자열 ex) "## 리뷰 요약 정보"
+  'autoLinkConfig', // 지라 등 특정 패스를 감지하여 링크로 변경해주기 위한 설정입니다.
 ] as const;
 
 const ACTION_INPUT_KEY_LIST: ActionInputKey[] = [...ACTION_REQUIRED_INPUT_KEY_LIST, ...ACTION_OPTIONAL_INPUT_KEY_LIST];

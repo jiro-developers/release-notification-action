@@ -49,7 +49,7 @@ const buildSlackMessage = ({
     },
     {
       type: 'section',
-      fields: [{ type: 'mrkdwn', text: `*PR*:\n <${url}|${title}-#${number}>` }],
+      fields: [{ type: 'mrkdwn', text: `<${url}|${title}-#${number}>` }],
     },
   ];
 

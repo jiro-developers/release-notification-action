@@ -43184,9 +43184,9 @@ const getPullRequestNumber = async (token) => {
     const { data: pullRequestList } = await octokit.rest.pulls.list({
         owner,
         repo,
-        state: 'all',
+        state: 'closed',
     });
-    const matchingPR = pullRequestList.find((pr) => pr.head.sha === sha);
+    const matchingPR = pullRequestList.find((pr) => pr?.merge_commit_sha === sha);
     if (matchingPR) {
         logger.info(`Found PR number: ${matchingPR.number} using head SHA.`);
         return matchingPR.number;

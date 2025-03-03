@@ -43292,7 +43292,7 @@ const run = async () => {
         const { token, extractionStartPoint, slackWebhookURL, extractionEndPoint, projectConfig, autoLinkConfig } = inputList;
         /**------------------------ INPUT 검증 종료 -----------------------------**/
         const { deploymentStatus, deployCommitSha } = getDeployInformationFromContext();
-        // [INFO] 배포 상태가 DEPLOY_SUCCEED_S1TATUS_LIST 와 DEPLOY_ERROR_STATUS_LIST 에 해당 되지 않을 경우 로딩 상태로 취급 하고 종료합니다.
+        // [INFO] 배포 상태가 DEPLOY_SUCCEED_STATUS_LIST 와 DEPLOY_ERROR_STATUS_LIST 에 해당 되지 않을 경우 로딩 상태로 취급 하고 종료합니다.
         const isPendingStatus = ![...DEPLOY_SUCCEED_STATUS_LIST, ...DEPLOY_ERROR_STATUS_LIST].includes(deploymentStatus);
         if (isPendingStatus) {
             logger.info(`Deployment is loading. ${deploymentStatus}`);

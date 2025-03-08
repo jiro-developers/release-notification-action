@@ -43203,7 +43203,8 @@ const getPullRequestNumber = async (token) => {
 
 ;// CONCATENATED MODULE: ./src/utils/slack/buildSlackMessage.ts
 
-const buildSlackMessage = ({ pullRequest: { title, url, number, body, owner, baseBranchName }, titleMessage, deployStatus = 'success', }) => {
+
+const buildSlackMessage = ({ pullRequest: { title, url: pullRequestURL, number, body, owner, baseBranchName }, titleMessage, deployStatus = 'success', }) => {
     const fields = [
         {
             type: 'mrkdwn',
@@ -43231,7 +43232,7 @@ const buildSlackMessage = ({ pullRequest: { title, url, number, body, owner, bas
         },
         {
             type: 'section',
-            fields: [{ type: 'mrkdwn', text: `<${url}|${title}-#${number}>` }],
+            fields: [{ type: 'mrkdwn', text: (0,slack_messages.url)(pullRequestURL, `${(0,slack_messages.escape)(title)} - ${number}`) }],
         },
     ];
     // PR의 body가 존재하고 deployStatus 가 success 인 경우 body를 추가합니다.

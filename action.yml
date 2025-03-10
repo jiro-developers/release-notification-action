@@ -21,6 +21,9 @@ inputs:
   projectConfig:
     description: "배포 알림 설정입니다. 자세한 내용은 readme를 참고해주세요."
     required: true
+  autoLinkConfig:
+    description: 지라 등 특정 패스를 감지하여 링크로 변경해주기 위한 설정입니다. 자세한 내용은 readme를 참고해주세요.
+    required: false
 
 runs:
   using: "node16"

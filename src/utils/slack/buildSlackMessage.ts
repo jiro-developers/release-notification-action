@@ -1,3 +1,4 @@
+import { escape, url } from '@atomist/slack-messages';
 import type { TextObject } from '@slack/types';
 import type { IncomingWebhookSendArguments as SlackMessagePayload } from '@slack/webhook';
 
@@ -17,7 +18,7 @@ interface BuildSlackMessageProps {
 }
 
 const buildSlackMessage = ({
-  pullRequest: { title, url, number, body, owner, baseBranchName },
+  pullRequest: { title, url: pullRequestURL, number, body, owner, baseBranchName },
   titleMessage,
   deployStatus = 'success',
 }: BuildSlackMessageProps): SlackMessagePayload => {
@@ -49,7 +50,7 @@ const buildSlackMessage = ({
     },
     {
       type: 'section',
-      fields: [{ type: 'mrkdwn', text: `<${url}|${title}-#${number}>` }],
+      fields: [{ type: 'mrkdwn', text: url(pullRequestURL, `${escape(title)} - ${number}`) }],
     },
   ];
 

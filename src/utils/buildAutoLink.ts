@@ -9,10 +9,10 @@ interface AutoLink {
 const buildAutoLink = (text: string, autoLinkList: AutoLink[]): string => {
   return autoLinkList.reduce((updatedText, { prefix, targetURL }) => {
     // 이미 링크가 있는 패턴 (예: [DD-1234](http://example.com))
-    const existingLinkPattern = `\\[${prefix}\\d+\\]\\([^)]+\\)`;
+    const existingLinkPattern = `\\[${prefix}[^\\]]+\\]\\([^)]+\\)`;
 
-    // 링크로 변환할 수 있는 텍스트 패턴 (예: DD-1234)
-    const linkableTextPattern = `${prefix}(\\d+)`;
+    // 링크로 변환할 수 있는 텍스트 패턴 (예: DD-1234 | DD-#$#@$ | DD-ABCD)
+    const linkableTextPattern = `${prefix}([^\\s]+)`;
 
     // 두 패턴을 모두 포함하는 정규식
     const autoLinkPattern = new RegExp(`(${existingLinkPattern})|(${linkableTextPattern})`, 'g');

@@ -7,6 +7,7 @@ import { safeJsonParse } from '@/utils/common';
 import { extractSection } from '@/utils/extractSection';
 import { findMatchedProjectConfig } from '@/utils/findMatchedProjectConfig';
 import { getGithubContext } from '@/utils/github/context/getGithubContext';
+import { checkHasSameAsDeployment } from '@/utils/github/deployment/checkSameAsDeployment';
 import { getDeployInformationFromContext } from '@/utils/github/deployment/getDeployInformationFromContext';
 import { getGithubCoreInput } from '@/utils/github/getGithubCoreInput';
 import { logger } from '@/utils/github/logger';
@@ -98,6 +99,19 @@ const run = async (): Promise<void> => {
       return;
     }
 
+    /**
+     * 상위에서 merge_commit_sha 와 deployCommitSha 가 같은지 확인하였으므로, deployCommitSha 는 무조건 존재합니다.
+     * 중복된 값이 2개 이상이라면 이미 배포알림이 진행되었으므로, 실행하지 않습니다.
+     * **/
+    const hasSameAsDeployment = await checkHasSameAsDeployment({ token });
+    if (hasSameAsDeployment) {
+      logger.error(
+        `This Sha was Same deploySha \n merge_commit_sha: ${merge_commit_sha} \n deploy_sha:${deployCommitSha}`
+      );
+
+      return;
+    }
+
     const parsedProjectConfig = safeJsonParse<ProjectConfig[]>(projectConfig);
     if (!parsedProjectConfig) {
       logger.error('JSON parsing error occurred,');
@@ -159,10 +173,10 @@ const run = async (): Promise<void> => {
       await sendSlackMessage({
         webhookURL: slackWebhookURL,
         payload: buildSlackMessage({
-        titleMessage: matchedProject.successReleaseTitle,
-        pullRequest: {
-          ...pullRequestInformation,
-          body: githubToSlack(buildAutoLink(extractedSection, parsedAutoLinkConfig)),
+          titleMessage: matchedProject.successReleaseTitle,
+          pullRequest: {
+            ...pullRequestInformation,
+            body: githubToSlack(buildAutoLink(extractedSection, parsedAutoLinkConfig)),
           },
         }),
       });

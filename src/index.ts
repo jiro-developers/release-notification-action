@@ -155,17 +155,22 @@ const run = async (): Promise<void> => {
     const parsedAutoLinkConfig = (autoLinkConfig ? safeJsonParse<AutoLink[]>(autoLinkConfig) : []) ?? [];
     logger.info(autoLinkConfig ? { ...parsedAutoLinkConfig } : 'AutoLinkConfig is not provided');
 
-    // [INFO] Slack 성공 메시지를 보냅니다.
-    await sendSlackMessage({
-      webhookURL: slackWebhookURL,
-      payload: buildSlackMessage({
+    try {
+      await sendSlackMessage({
+        webhookURL: slackWebhookURL,
+        payload: buildSlackMessage({
         titleMessage: matchedProject.successReleaseTitle,
         pullRequest: {
           ...pullRequestInformation,
           body: githubToSlack(buildAutoLink(extractedSection, parsedAutoLinkConfig)),
-        },
-      }),
-    });
+          },
+        }),
+      });
+      // [INFO] Slack 성공 메시지를 보냅니다.
+      logger.info(`Sending a message to Slack...${slackWebhookURL}`);
+    } catch (error) {
+      logger.error(`Failed to send a message to Slack: ${(error as Error).message}`);
+    }
   } catch (error) {
     logger.setFailed(`Action failed: ${(error as Error).message}`);
   }

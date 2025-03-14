@@ -43088,24 +43088,32 @@ const findMatchedProjectConfig = async ({ parsedProjectConfig, token, baseBranch
 ;// CONCATENATED MODULE: ./src/utils/github/deployment/getDeploymentList.ts
 
 
-
-const getDeploymentList = async (token) => {
+const getDeploymentList = async (token, rest) => {
     const octokit = github.getOctokit(token);
     const { issue: { owner, repo }, } = getGithubContext();
-    try {
-        const deploymentListResponse = await octokit.rest.repos.listDeployments({
-            token,
-            per_page: 100,
-            owner,
-            repo,
-        });
-        return deploymentListResponse.data;
-    }
-    catch (error) {
-        if (error instanceof Error) {
-            logger.error(`[ERROR] Get Deployment List: ${error.message}`);
-        }
-    }
+    return await octokit.rest.repos.listDeployments({
+        token,
+        per_page: 100,
+        owner,
+        repo,
+        ...rest,
+    });
+};
+
+
+;// CONCATENATED MODULE: ./src/utils/github/deployment/getDeploymentStatusesList.ts
+
+
+const getDeploymentStatusesList = async (token, deployment_id, rest) => {
+    const octokit = github.getOctokit(token);
+    const { issue: { owner, repo }, } = getGithubContext();
+    return await octokit.rest.repos.listDeploymentStatuses({
+        token,
+        owner,
+        repo,
+        deployment_id,
+        ...rest,
+    });
 };
 
 
@@ -43113,27 +43121,35 @@ const getDeploymentList = async (token) => {
 
 
 
-const checkHasSameAsDeployment = async ({ token }) => {
-    const deploymentList = await getDeploymentList(token);
+
+const MAX_DEPLOYMENT_COUNT = 2;
+const checkHasSameAsDeployment = async ({ token, maxCount = MAX_DEPLOYMENT_COUNT }) => {
     const { deployEnvironment, deployCommitSha } = getDeployInformationFromContext();
+    const { data: deploymentList } = await getDeploymentList(token, {
+        environment: deployEnvironment,
+        sha: deployCommitSha,
+    });
     // 에러 시 true 를 return 후 로깅을 합니다.
     if (!deploymentList) {
         logger.error('Failed to get deployment list');
         return true;
     }
-    const getInformationFromDeploymentList = deploymentList.map((deployment) => {
+    // sha 와 env 를 필터링 한 결과물을 가져옵니다.
+    const builtDeploymentList = deploymentList.map((deployment) => {
         return {
+            id: deployment.id,
             sha: deployment.sha,
             environment: deployment.environment,
         };
     });
-    const filteredDeploymentList = getInformationFromDeploymentList.filter((deployment) => {
-        const isSameEnvironment = deployment.environment === deployEnvironment;
-        const isSameSha = deployment.sha === deployCommitSha;
-        return isSameEnvironment && isSameSha;
-    });
-    logger.info(`same SHA: ${filteredDeploymentList.map((deployment) => deployment.sha).join(', ')}`);
-    return filteredDeploymentList.length >= 2;
+    // 해당 값으로 deploymentStatuses 를 가져옵니다.
+    const deploymentStatuses = await Promise.all(builtDeploymentList.map(async (deployment) => await getDeploymentStatusesList(token, deployment.id)));
+    // deploymentStatuses 를 flatMap 으로 평탄화 합니다.
+    const flattenedDeploymentStatuses = deploymentStatuses.flatMap((res) => res.data);
+    // deploymentStatuses 중 state 가 success 인 것을 가져옵니다.
+    const isSameAsDeployment = flattenedDeploymentStatuses.filter((status) => status.state === 'success');
+    // 만약 MAX_DEPLOYMENT_COUNT 개 이상인지 확인합니다.
+    return isSameAsDeployment.length >= maxCount;
 };
 
 
@@ -43449,6 +43465,8 @@ const run = async () => {
         const parsedAutoLinkConfig = (autoLinkConfig ? safeJsonParse(autoLinkConfig) : []) ?? [];
         logger.info(autoLinkConfig ? { ...parsedAutoLinkConfig } : 'AutoLinkConfig is not provided');
         try {
+            // [INFO] Slack 성공 메시지를 보냅니다.
+            logger.info(`Sending a message to Slack...${slackWebhookURL}`);
             await sendSlackMessage({
                 webhookURL: slackWebhookURL,
                 payload: buildSlackMessage({
@@ -43459,8 +43477,7 @@ const run = async () => {
                     },
                 }),
             });
-            // [INFO] Slack 성공 메시지를 보냅니다.
-            logger.info(`Sending a message to Slack...${slackWebhookURL}`);
+            logger.info(`Successfully sent a message to Slack: ${slackWebhookURL}`);
         }
         catch (error) {
             logger.error(`Failed to send a message to Slack: ${error.message}`);

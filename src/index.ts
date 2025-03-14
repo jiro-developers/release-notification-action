@@ -170,6 +170,8 @@ const run = async (): Promise<void> => {
     logger.info(autoLinkConfig ? { ...parsedAutoLinkConfig } : 'AutoLinkConfig is not provided');
 
     try {
+      // [INFO] Slack 성공 메시지를 보냅니다.
+      logger.info(`Sending a message to Slack...${slackWebhookURL}`);
       await sendSlackMessage({
         webhookURL: slackWebhookURL,
         payload: buildSlackMessage({
@@ -180,8 +182,7 @@ const run = async (): Promise<void> => {
           },
         }),
       });
-      // [INFO] Slack 성공 메시지를 보냅니다.
-      logger.info(`Sending a message to Slack...${slackWebhookURL}`);
+      logger.info(`Successfully sent a message to Slack: ${slackWebhookURL}`);
     } catch (error) {
       logger.error(`Failed to send a message to Slack: ${(error as Error).message}`);
     }

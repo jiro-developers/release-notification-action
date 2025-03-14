@@ -50,7 +50,10 @@ const buildSlackMessage = ({
     },
     {
       type: 'section',
-      fields: [{ type: 'mrkdwn', text: url(pullRequestURL, `${escape(title)} - ${number}`) }],
+      text: {
+        type: 'mrkdwn',
+        text: url(pullRequestURL, `${escape(title)} - ${number}`),
+      },
     },
   ];
 

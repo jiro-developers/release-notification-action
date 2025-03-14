@@ -46,6 +46,8 @@ const findMatchedProjectConfig = async ({
       projectConfig,
     });
 
+    logger.info(`\n ------------------------------------------- \n`);
+
     return isMatchedBranch && isMatchedFilePath && isMatchedDeployEnvironment;
   });
 };

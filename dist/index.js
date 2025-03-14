@@ -43310,7 +43310,10 @@ const buildSlackMessage = ({ pullRequest: { title, url: pullRequestURL, number, 
         },
         {
             type: 'section',
-            fields: [{ type: 'mrkdwn', text: (0,slack_messages.url)(pullRequestURL, `${(0,slack_messages.escape)(title)} - ${number}`) }],
+            text: {
+                type: 'mrkdwn',
+                text: (0,slack_messages.url)(pullRequestURL, `${(0,slack_messages.escape)(title)} - ${number}`),
+            },
         },
     ];
     // PR의 body가 존재하고 deployStatus 가 success 인 경우 body를 추가합니다.

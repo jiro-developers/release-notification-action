@@ -43312,7 +43312,7 @@ const buildSlackMessage = ({ pullRequest: { title, url: pullRequestURL, number, 
             type: 'section',
             text: {
                 type: 'mrkdwn',
-                text: (0,slack_messages.url)(pullRequestURL, `${(0,slack_messages.escape)(title)} - ${number}`),
+                text: (0,slack_messages.url)(pullRequestURL, `${(0,slack_messages.escape)(title)} - #${number}`),
             },
         },
     ];

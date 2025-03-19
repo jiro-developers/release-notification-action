@@ -104,11 +104,15 @@ const run = async (): Promise<void> => {
      * 중복된 값이 2개 이상이라면 이미 배포알림이 진행되었으므로, 실행하지 않습니다.
      * **/
     const hasSameAsDeployment = await checkHasSameAsDeployment({ token });
-    if (hasSameAsDeployment) {
+    if (hasSameAsDeployment.isError) {
+      logger.error('Failed to check the deployment status');
+      return;
+    }
+
+    if (hasSameAsDeployment.isSameAsDeployment) {
       logger.error(
         `This Sha was Same deploySha \n merge_commit_sha: ${merge_commit_sha} \n deploy_sha:${deployCommitSha}`
       );
-
       return;
     }
 

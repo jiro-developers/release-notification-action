@@ -43101,10 +43101,10 @@ const getDeploymentList = async (token, rest) => {
 };
 
 
-;// CONCATENATED MODULE: ./src/utils/github/deployment/getDeploymentStatusesList.ts
+;// CONCATENATED MODULE: ./src/utils/github/deployment/getDeploymentStatusList.ts
 
 
-const getDeploymentStatusesList = async (token, deployment_id, rest) => {
+const getDeploymentStatusList = async (token, deployment_id, rest) => {
     const octokit = github.getOctokit(token);
     const { issue: { owner, repo }, } = getGithubContext();
     return await octokit.rest.repos.listDeploymentStatuses({
@@ -43123,16 +43123,19 @@ const getDeploymentStatusesList = async (token, deployment_id, rest) => {
 
 
 const MAX_DEPLOYMENT_COUNT = 2;
-const checkHasSameAsDeployment = async ({ token, maxCount = MAX_DEPLOYMENT_COUNT }) => {
+const checkHasSameAsDeployment = async ({ token, maxCount = MAX_DEPLOYMENT_COUNT, }) => {
     const { deployEnvironment, deployCommitSha } = getDeployInformationFromContext();
     const { data: deploymentList } = await getDeploymentList(token, {
         environment: deployEnvironment,
         sha: deployCommitSha,
     });
-    // 에러 시 true 를 return 후 로깅을 합니다.
+    // 에러 시 isError 를 true 로 반환합니다. 또한 isSameAsDeployment 는 null 로 반환합니다.
     if (!deploymentList) {
         logger.error('Failed to get deployment list');
-        return true;
+        return {
+            isError: true,
+            isSameAsDeployment: null,
+        };
     }
     // sha 와 env 를 필터링 한 결과물을 가져옵니다.
     const builtDeploymentList = deploymentList.map((deployment) => {
@@ -43142,14 +43145,26 @@ const checkHasSameAsDeployment = async ({ token, maxCount = MAX_DEPLOYMENT_COUNT
             environment: deployment.environment,
         };
     });
-    // 해당 값으로 deploymentStatuses 를 가져옵니다.
-    const deploymentStatuses = await Promise.all(builtDeploymentList.map(async (deployment) => await getDeploymentStatusesList(token, deployment.id)));
-    // deploymentStatuses 를 flatMap 으로 평탄화 합니다.
-    const flattenedDeploymentStatuses = deploymentStatuses.flatMap((res) => res.data);
-    // deploymentStatuses 중 state 가 success 인 것을 가져옵니다.
-    const isSameAsDeployment = flattenedDeploymentStatuses.filter((status) => status.state === 'success');
-    // 만약 MAX_DEPLOYMENT_COUNT 개 이상인지 확인합니다.
-    return isSameAsDeployment.length >= maxCount;
+    try {
+        // 해당 값으로 deploymentStatusList 를 가져옵니다.
+        const deploymentStatusList = await Promise.all(builtDeploymentList.map(async (deployment) => await getDeploymentStatusList(token, deployment.id)));
+        // deploymentStatusList 를 flatMap 으로 평탄화 합니다.
+        const flattenedDeploymentStatusList = deploymentStatusList.flatMap((res) => res.data);
+        // deploymentStatusList 중 state 가 success 인 것을 가져옵니다.
+        const isSameAsDeployment = flattenedDeploymentStatusList.filter((status) => status.state === 'success');
+        // 만약 MAX_DEPLOYMENT_COUNT 개 이상인지 확인합니다.
+        return {
+            isError: false,
+            isSameAsDeployment: isSameAsDeployment.length >= maxCount,
+        };
+    }
+    catch (error) {
+        logger.error(`Failed to get deployment status list ${error}`);
+        return {
+            isError: true,
+            isSameAsDeployment: null,
+        };
+    }
 };
 
 
@@ -43419,7 +43434,11 @@ const run = async () => {
          * 중복된 값이 2개 이상이라면 이미 배포알림이 진행되었으므로, 실행하지 않습니다.
          * **/
         const hasSameAsDeployment = await checkHasSameAsDeployment({ token });
-        if (hasSameAsDeployment) {
+        if (hasSameAsDeployment.isError) {
+            logger.error('Failed to check the deployment status');
+            return;
+        }
+        if (hasSameAsDeployment.isSameAsDeployment) {
             logger.error(`This Sha was Same deploySha \n merge_commit_sha: ${merge_commit_sha} \n deploy_sha:${deployCommitSha}`);
             return;
         }

@@ -3,7 +3,7 @@ import type { RestEndpointMethodTypes } from '@octokit/plugin-rest-endpoint-meth
 
 import { getGithubContext } from '@/utils/github/context/getGithubContext';
 
-const getDeploymentStatusesList = async (
+const getDeploymentStatusList = async (
   token: string,
   deployment_id: number,
   rest?: Omit<RestEndpointMethodTypes['repos']['listDeploymentStatuses']['parameters'], 'token' | 'owner' | 'repo'>
@@ -22,4 +22,4 @@ const getDeploymentStatusesList = async (
   });
 };
 
-export { getDeploymentStatusesList };
+export { getDeploymentStatusList };

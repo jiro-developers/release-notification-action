@@ -43305,7 +43305,7 @@ const buildSlackMessage = ({ pullRequest: { title, url: pullRequestURL, number, 
         },
         {
             type: 'mrkdwn',
-            text: `*PR 담당자:* ${owner}`,
+            text: `*PR 담당자:* ${(0,slack_messages.user)(owner)}`,
         },
     ];
     const blocks = [

@@ -1,4 +1,4 @@
-import { escape, url } from '@atomist/slack-messages';
+import { escape, url, user } from '@atomist/slack-messages';
 import type { TextObject } from '@slack/types';
 import type { IncomingWebhookSendArguments as SlackMessagePayload } from '@slack/webhook';
 
@@ -29,7 +29,7 @@ const buildSlackMessage = ({
     },
     {
       type: 'mrkdwn',
-      text: `*PR 담당자:* ${owner}`,
+      text: `*PR 담당자:* ${user(owner)}`,
     },
   ];
 

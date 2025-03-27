@@ -23,22 +23,18 @@ const ACTION_OPTIONAL_INPUT_KEY_LIST: OptionalActionInputKey[] = [
 const ACTION_INPUT_KEY_LIST: ActionInputKey[] = [...ACTION_REQUIRED_INPUT_KEY_LIST, ...ACTION_OPTIONAL_INPUT_KEY_LIST];
 
 /**
- * Slack 메시지의 최대 길이입니다.
- * @see https://api.slack.com/methods/chat.postMessage
- * ----------------------------------------------------
- * 추후 truncating 처리를 한다면 제거 될 상수입니다.
- * @see https://api.slack.com/methods/chat.postMessage#truncating
+ * 3001자 까지 대응이 되지만 특수한 케이스로 인하여 짤리는 경우를 대비하여 2800자로 정합니다.
  * **/
-const MAX_LENGTH_OF_SLACK_MESSAGE = 4_000;
+const MAX_LENGTH_OF_SLACK_MESSAGE_FOR_ATTACHMENT = 2_800;
 
 const DEPLOY_ERROR_STATUS_LIST: GithubDeploymentStatusState[] = ['failure', 'error'];
 const DEPLOY_SUCCEED_STATUS_LIST: GithubDeploymentStatusState[] = ['success'];
 
 export {
   ACTION_REQUIRED_INPUT_KEY_LIST,
-  MAX_LENGTH_OF_SLACK_MESSAGE,
   DEPLOY_ERROR_STATUS_LIST,
   DEPLOY_SUCCEED_STATUS_LIST,
   ACTION_INPUT_KEY_LIST,
   ACTION_OPTIONAL_INPUT_KEY_LIST,
+  MAX_LENGTH_OF_SLACK_MESSAGE_FOR_ATTACHMENT,
 };

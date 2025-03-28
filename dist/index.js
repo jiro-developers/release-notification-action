@@ -41101,6 +41101,7 @@ const ACTION_INPUT_KEY_LIST = [...ACTION_REQUIRED_INPUT_KEY_LIST, ...ACTION_OPTI
  * 3001자 까지 대응이 되지만 특수한 케이스로 인하여 짤리는 경우를 대비하여 2800자로 정합니다.
  * **/
 const MAX_LENGTH_OF_SLACK_MESSAGE_FOR_ATTACHMENT = 2_800;
+const MAX_ATTACHMENT_BLOCK_COUNT = 100;
 const DEPLOY_ERROR_STATUS_LIST = ['failure', 'error'];
 const DEPLOY_SUCCEED_STATUS_LIST = ['success'];
 
@@ -43321,13 +43322,17 @@ const buildChunkListByText = (text, maxChunkLength = MAX_LENGTH_OF_SLACK_MESSAGE
 
 const buildAttachmentBlockList = (text) => {
     const builtChunkList = buildChunkListByText(text, MAX_LENGTH_OF_SLACK_MESSAGE_FOR_ATTACHMENT);
-    return builtChunkList.map((text) => ({
+    const builtAttachmentBlockList = builtChunkList.map((chunk) => ({
         type: 'section',
         text: {
             type: 'mrkdwn',
-            text,
+            text: chunk,
         },
     }));
+    if (builtAttachmentBlockList.length <= MAX_ATTACHMENT_BLOCK_COUNT) {
+        return builtAttachmentBlockList;
+    }
+    return builtAttachmentBlockList.slice(0, MAX_ATTACHMENT_BLOCK_COUNT);
 };
 
 

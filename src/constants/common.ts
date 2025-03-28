@@ -25,7 +25,9 @@ const ACTION_INPUT_KEY_LIST: ActionInputKey[] = [...ACTION_REQUIRED_INPUT_KEY_LI
 /**
  * 3001자 까지 대응이 되지만 특수한 케이스로 인하여 짤리는 경우를 대비하여 2800자로 정합니다.
  * **/
-const MAX_LENGTH_OF_SLACK_MESSAGE_FOR_ATTACHMENT = 2_800;
+const MAX_LENGTH_OF_SLACK_MESSAGE_FOR_ATTACHMENT = 2_800 as const;
+
+const MAX_ATTACHMENT_BLOCK_COUNT = 100 as const;
 
 const DEPLOY_ERROR_STATUS_LIST: GithubDeploymentStatusState[] = ['failure', 'error'];
 const DEPLOY_SUCCEED_STATUS_LIST: GithubDeploymentStatusState[] = ['success'];
@@ -37,4 +39,5 @@ export {
   ACTION_INPUT_KEY_LIST,
   ACTION_OPTIONAL_INPUT_KEY_LIST,
   MAX_LENGTH_OF_SLACK_MESSAGE_FOR_ATTACHMENT,
+  MAX_ATTACHMENT_BLOCK_COUNT,
 };

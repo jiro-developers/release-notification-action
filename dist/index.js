@@ -41101,7 +41101,7 @@ const ACTION_INPUT_KEY_LIST = [...ACTION_REQUIRED_INPUT_KEY_LIST, ...ACTION_OPTI
  * 3001자 까지 대응이 되지만 특수한 케이스로 인하여 짤리는 경우를 대비하여 2800자로 정합니다.
  * **/
 const MAX_LENGTH_OF_SLACK_MESSAGE_FOR_ATTACHMENT = 2_800;
-const MAX_ATTACHMENT_BLOCK_COUNT = 100;
+const MAX_ATTACHMENT_BLOCK_COUNT = 50;
 const DEPLOY_ERROR_STATUS_LIST = ['failure', 'error'];
 const DEPLOY_SUCCEED_STATUS_LIST = ['success'];
 

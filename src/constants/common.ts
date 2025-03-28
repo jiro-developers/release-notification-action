@@ -27,7 +27,7 @@ const ACTION_INPUT_KEY_LIST: ActionInputKey[] = [...ACTION_REQUIRED_INPUT_KEY_LI
  * **/
 const MAX_LENGTH_OF_SLACK_MESSAGE_FOR_ATTACHMENT = 2_800 as const;
 
-const MAX_ATTACHMENT_BLOCK_COUNT = 100 as const;
+const MAX_ATTACHMENT_BLOCK_COUNT = 50 as const;
 
 const DEPLOY_ERROR_STATUS_LIST: GithubDeploymentStatusState[] = ['failure', 'error'];
 const DEPLOY_SUCCEED_STATUS_LIST: GithubDeploymentStatusState[] = ['success'];

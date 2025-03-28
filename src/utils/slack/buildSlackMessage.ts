@@ -1,8 +1,9 @@
 import { escape, url, user } from '@atomist/slack-messages';
 import type { TextObject } from '@slack/types';
+import type { AnyBlock } from '@slack/types/dist/block-kit/blocks';
 import type { IncomingWebhookSendArguments as SlackMessagePayload } from '@slack/webhook';
 
-import { MAX_LENGTH_OF_SLACK_MESSAGE } from '@/constants/common';
+import { buildAttachmentBlockList } from '@/utils/slack/buildAttachmentBlockList';
 
 interface BuildSlackMessageProps {
   pullRequest: {
@@ -22,7 +23,8 @@ const buildSlackMessage = ({
   titleMessage,
   deployStatus = 'success',
 }: BuildSlackMessageProps): SlackMessagePayload => {
-  const fields: TextObject[] = [
+  const attachmentBlockList: AnyBlock[] = [];
+  const fieldList: TextObject[] = [
     {
       type: 'mrkdwn',
       text: `*merge 된 브랜치:* ${baseBranchName}`,
@@ -33,7 +35,7 @@ const buildSlackMessage = ({
     },
   ];
 
-  const blocks: SlackMessagePayload['blocks'] = [
+  const blockList: SlackMessagePayload['blocks'] = [
     {
       type: 'header',
       text: {
@@ -46,7 +48,7 @@ const buildSlackMessage = ({
     },
     {
       type: 'section',
-      fields,
+      fields: fieldList,
     },
     {
       type: 'section',
@@ -59,20 +61,20 @@ const buildSlackMessage = ({
 
   // PR의 body가 존재하고 deployStatus 가 success 인 경우 body를 추가합니다.
   if (deployStatus === 'success' && body) {
-    blocks.push(
-      { type: 'divider' },
-      {
-        type: 'section',
-        text: { type: 'mrkdwn', text: body.slice(0, MAX_LENGTH_OF_SLACK_MESSAGE) },
-      }
-    );
+    blockList.push({ type: 'divider' });
+    attachmentBlockList.push(...buildAttachmentBlockList(body));
   }
 
   return {
     username: 'ReleaseNotesBot',
     icon_emoji: ':dropshot:',
     text: titleMessage,
-    blocks: blocks,
+    blocks: blockList,
+    attachments: [
+      {
+        blocks: attachmentBlockList,
+      },
+    ],
   };
 };
 

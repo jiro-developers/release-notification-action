@@ -27,7 +27,17 @@ const ACTION_INPUT_KEY_LIST: ActionInputKey[] = [...ACTION_REQUIRED_INPUT_KEY_LI
  * **/
 const MAX_LENGTH_OF_SLACK_MESSAGE_FOR_ATTACHMENT = 2_800 as const;
 
+/**
+ * 슬랙 메시지 API > blocks 제한 갯수
+ * @see https://api.slack.com/reference/block-kit/blocks
+ */
 const MAX_ATTACHMENT_BLOCK_COUNT = 50 as const;
+
+/**
+ * 슬랙 메시지 API > attachments 제한 갯수
+ * @see https://api.slack.com/methods/chat.postMessage#errors > too_many_attachments
+ */
+const MAX_ATTACHMENT_COUNT = 100;
 
 const DEPLOY_ERROR_STATUS_LIST: GithubDeploymentStatusState[] = ['failure', 'error'];
 const DEPLOY_SUCCEED_STATUS_LIST: GithubDeploymentStatusState[] = ['success'];
@@ -40,4 +50,5 @@ export {
   ACTION_OPTIONAL_INPUT_KEY_LIST,
   MAX_LENGTH_OF_SLACK_MESSAGE_FOR_ATTACHMENT,
   MAX_ATTACHMENT_BLOCK_COUNT,
+  MAX_ATTACHMENT_COUNT,
 };

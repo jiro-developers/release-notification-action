@@ -41101,7 +41101,16 @@ const ACTION_INPUT_KEY_LIST = [...ACTION_REQUIRED_INPUT_KEY_LIST, ...ACTION_OPTI
  * 3001자 까지 대응이 되지만 특수한 케이스로 인하여 짤리는 경우를 대비하여 2800자로 정합니다.
  * **/
 const MAX_LENGTH_OF_SLACK_MESSAGE_FOR_ATTACHMENT = 2_800;
+/**
+ * 슬랙 메시지 API > blocks 제한 갯수
+ * @see https://api.slack.com/reference/block-kit/blocks
+ */
 const MAX_ATTACHMENT_BLOCK_COUNT = 50;
+/**
+ * 슬랙 메시지 API > attachments 제한 갯수
+ * @see https://api.slack.com/methods/chat.postMessage#errors > too_many_attachments
+ */
+const MAX_ATTACHMENT_COUNT = 100;
 const DEPLOY_ERROR_STATUS_LIST = ['failure', 'error'];
 const DEPLOY_SUCCEED_STATUS_LIST = ['success'];
 
@@ -41141,6 +41150,13 @@ const safeJsonParse = (jsonString) => {
 };
 const typedObjectEntries = (obj) => {
     return Object.entries(obj);
+};
+const chunk = (array, size) => {
+    if (size <= 0)
+        throw new Error('Size must be greater than 0');
+    if (array.length === 0)
+        return [];
+    return Array.from({ length: Math.ceil(array.length / size) }, (_, index) => array.slice(index * size, (index + 1) * size));
 };
 
 
@@ -43330,17 +43346,25 @@ const buildAttachmentBlockList = (text) => {
         },
     }));
     if (builtAttachmentBlockList.length <= MAX_ATTACHMENT_BLOCK_COUNT) {
-        return builtAttachmentBlockList;
+        return {
+            chunkedList: builtAttachmentBlockList,
+            omittedList: [],
+        };
     }
-    return builtAttachmentBlockList.slice(0, MAX_ATTACHMENT_BLOCK_COUNT);
+    return {
+        chunkedList: builtAttachmentBlockList.slice(0, MAX_ATTACHMENT_BLOCK_COUNT),
+        omittedList: builtAttachmentBlockList.slice(MAX_ATTACHMENT_BLOCK_COUNT, builtAttachmentBlockList.length),
+    };
 };
 
 
 ;// CONCATENATED MODULE: ./src/utils/slack/buildSlackMessage.ts
 
 
+
+
 const buildSlackMessage = ({ pullRequest: { title, url: pullRequestURL, number, body, owner, baseBranchName }, titleMessage, deployStatus = 'success', }) => {
-    const attachmentBlockList = [];
+    let attachmentList = [];
     const fieldList = [
         {
             type: 'mrkdwn',
@@ -43377,18 +43401,23 @@ const buildSlackMessage = ({ pullRequest: { title, url: pullRequestURL, number, 
     // PR의 body가 존재하고 deployStatus 가 success 인 경우 body를 추가합니다.
     if (deployStatus === 'success' && body) {
         blockList.push({ type: 'divider' });
-        attachmentBlockList.push(...buildAttachmentBlockList(body));
+        const { omittedList, chunkedList } = buildAttachmentBlockList(body);
+        // 청크 리스트 추가
+        attachmentList.push({ blocks: chunkedList });
+        // 생략된 리스트를 청크로 분할하여 추가
+        const omittedChunkList = chunk(omittedList, MAX_ATTACHMENT_BLOCK_COUNT);
+        omittedChunkList.forEach((omittedChunk) => {
+            attachmentList.push({ blocks: omittedChunk });
+        });
+        // 최대 개수만큼만 유지하도록 수정
+        attachmentList = attachmentList.slice(0, MAX_ATTACHMENT_COUNT);
     }
     return {
         username: 'ReleaseNotesBot',
         icon_emoji: ':dropshot:',
         text: titleMessage,
         blocks: blockList,
-        attachments: [
-            {
-                blocks: attachmentBlockList,
-            },
-        ],
+        ...(attachmentList?.length > 0 && { attachments: attachmentList }),
     };
 };
 

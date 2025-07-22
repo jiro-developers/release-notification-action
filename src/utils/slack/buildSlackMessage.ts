@@ -1,8 +1,11 @@
 import { escape, url, user } from '@atomist/slack-messages';
 import type { TextObject } from '@slack/types';
+import type { AnyBlock } from '@slack/types/dist/block-kit/blocks';
 import type { IncomingWebhookSendArguments as SlackMessagePayload } from '@slack/webhook';
 
-import { MAX_LENGTH_OF_SLACK_MESSAGE } from '@/constants/common';
+import { MAX_ATTACHMENT_BLOCK_COUNT, MAX_ATTACHMENT_COUNT } from '@/constants/common';
+import { chunk } from '@/utils/common';
+import { buildAttachmentBlockList } from '@/utils/slack/buildAttachmentBlockList';
 
 interface BuildSlackMessageProps {
   pullRequest: {
@@ -22,7 +25,10 @@ const buildSlackMessage = ({
   titleMessage,
   deployStatus = 'success',
 }: BuildSlackMessageProps): SlackMessagePayload => {
-  const fields: TextObject[] = [
+  let attachmentList: {
+    blocks: AnyBlock[];
+  }[] = [];
+  const fieldList: TextObject[] = [
     {
       type: 'mrkdwn',
       text: `*merge 된 브랜치:* ${baseBranchName}`,
@@ -33,7 +39,7 @@ const buildSlackMessage = ({
     },
   ];
 
-  const blocks: SlackMessagePayload['blocks'] = [
+  const blockList: SlackMessagePayload['blocks'] = [
     {
       type: 'header',
       text: {
@@ -46,7 +52,7 @@ const buildSlackMessage = ({
     },
     {
       type: 'section',
-      fields,
+      fields: fieldList,
     },
     {
       type: 'section',
@@ -59,20 +65,28 @@ const buildSlackMessage = ({
 
   // PR의 body가 존재하고 deployStatus 가 success 인 경우 body를 추가합니다.
   if (deployStatus === 'success' && body) {
-    blocks.push(
-      { type: 'divider' },
-      {
-        type: 'section',
-        text: { type: 'mrkdwn', text: body.slice(0, MAX_LENGTH_OF_SLACK_MESSAGE) },
-      }
-    );
+    blockList.push({ type: 'divider' });
+    const { omittedList, chunkedList } = buildAttachmentBlockList(body);
+
+    // 청크 리스트 추가
+    attachmentList.push({ blocks: chunkedList });
+
+    // 생략된 리스트를 청크로 분할하여 추가
+    const omittedChunkList = chunk(omittedList, MAX_ATTACHMENT_BLOCK_COUNT);
+    omittedChunkList.forEach((omittedChunk) => {
+      attachmentList.push({ blocks: omittedChunk });
+    });
+
+    // 최대 개수만큼만 유지하도록 수정
+    attachmentList = attachmentList.slice(0, MAX_ATTACHMENT_COUNT);
   }
 
   return {
     username: 'ReleaseNotesBot',
     icon_emoji: ':dropshot:',
     text: titleMessage,
-    blocks: blocks,
+    blocks: blockList,
+    ...(attachmentList?.length > 0 && { attachments: attachmentList }),
   };
 };
 

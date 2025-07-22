@@ -33,8 +33,14 @@ const getPullRequestInfo = async (
     });
 
     return pullRequestData;
-  } catch {
-    logger.setFailed(`Failed to retrieve PR info`);
+  } catch (error) {
+    logger.error({
+      message: `Failed to get pull request info ${error}`,
+      error: error instanceof Error ? error.message : String(error),
+      owner,
+      repo,
+      pull_number: pullRequestNumber,
+    });
 
     return null;
   }

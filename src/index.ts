@@ -118,7 +118,10 @@ const run = async (): Promise<void> => {
 
     const parsedProjectConfig = safeJsonParse<ProjectConfig[]>(projectConfig);
     if (!parsedProjectConfig) {
-      logger.error('JSON parsing error occurred,');
+      logger.error({
+        message: 'JSON parsing error occurred, please check the projectConfig input',
+        projectConfig,
+      });
       return;
     }
 

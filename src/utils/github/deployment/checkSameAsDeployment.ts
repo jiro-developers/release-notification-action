@@ -60,7 +60,12 @@ const checkHasSameAsDeployment = async ({
       isSameAsDeployment: isSameAsDeployment.length >= maxCount,
     };
   } catch (error) {
-    logger.error(`Failed to get deployment status list ${error}`);
+    logger.error({
+      message: `Failed to get deployment status list ${error}`,
+      error: error instanceof Error ? error.message : String(error),
+      deployEnvironment,
+      deployCommitSha,
+    });
 
     return {
       isError: true,

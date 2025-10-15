@@ -29,8 +29,14 @@ const getPullRequestFromCommit = async (token: string) => {
 
     logger.info('No associated PR found for this commit.');
     return null;
-  } catch {
-    logger.setFailed(`Failed to retrieve PR from commit`);
+  } catch (error) {
+    logger.error({
+      message: `Failed to retrieve PR from commit: ${error}`,
+      error: error instanceof Error ? error.message : String(error),
+      owner,
+      repo,
+      sha,
+    });
     return null;
   }
 };

@@ -46,6 +46,7 @@ const getPullRequestNumber = async (token: string): Promise<number> => {
   const pullRequestNumberFromCommit = await getPullRequestFromCommit(token).then((pr) => pr?.number);
 
   if (!pullRequestNumberFromCommit) {
+    logger.error(`No PR found associated with commit SHA: ${sha}`);
     throw new Error(`Unable to find PR associated with commit SHA: ${sha}`);
   }
 

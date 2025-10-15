@@ -1,7 +1,14 @@
+import { logger } from '@/utils/github/logger';
+
 const safeJsonParse = <T>(jsonString: string): T | null => {
   try {
     return JSON.parse(jsonString);
-  } catch {
+  } catch (error) {
+    logger.error({
+      message: 'Failed to parse JSON string',
+      error: error instanceof Error ? error.message : String(error),
+      jsonString,
+    });
     return null;
   }
 };

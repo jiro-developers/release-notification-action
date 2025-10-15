@@ -41139,12 +41139,46 @@ const buildAutoLink = (text, autoLinkList) => {
 };
 
 
+// EXTERNAL MODULE: ./node_modules/.pnpm/@actions+core@1.11.1/node_modules/@actions/core/lib/core.js
+var core = __nccwpck_require__(1078);
+;// CONCATENATED MODULE: ./src/utils/github/logger.ts
+
+const formatMessage = (value) => {
+    if (typeof value === 'object' && value !== null) {
+        return Object.entries(value)
+            .map(([key, nestedValue]) => `${key}: ${JSON.stringify(nestedValue, null, 2)}`)
+            .join(',  \n');
+    }
+    return String(value);
+};
+const logger = {
+    error: (message, properties) => {
+        core.error(formatMessage(message), properties);
+    },
+    info: (message) => {
+        core.info(formatMessage(message));
+    },
+    warning: (message) => {
+        core.warning(formatMessage(message));
+    },
+    setFailed: (message) => {
+        core.setFailed(formatMessage(message));
+    },
+};
+
+
 ;// CONCATENATED MODULE: ./src/utils/common.ts
+
 const safeJsonParse = (jsonString) => {
     try {
         return JSON.parse(jsonString);
     }
-    catch {
+    catch (error) {
+        logger.error({
+            message: 'Failed to parse JSON string',
+            error: error instanceof Error ? error.message : String(error),
+            jsonString,
+        });
         return null;
     }
 };
@@ -43035,34 +43069,6 @@ const getDeployInformationFromContext = () => {
 };
 
 
-// EXTERNAL MODULE: ./node_modules/.pnpm/@actions+core@1.11.1/node_modules/@actions/core/lib/core.js
-var core = __nccwpck_require__(1078);
-;// CONCATENATED MODULE: ./src/utils/github/logger.ts
-
-const formatMessage = (value) => {
-    if (typeof value === 'object' && value !== null) {
-        return Object.entries(value)
-            .map(([key, nestedValue]) => `${key}: ${JSON.stringify(nestedValue, null, 2)}`)
-            .join(',  \n');
-    }
-    return String(value);
-};
-const logger = {
-    error: (message, properties) => {
-        core.error(formatMessage(message), properties);
-    },
-    info: (message) => {
-        core.info(formatMessage(message));
-    },
-    warning: (message) => {
-        core.warning(formatMessage(message));
-    },
-    setFailed: (message) => {
-        core.setFailed(formatMessage(message));
-    },
-};
-
-
 ;// CONCATENATED MODULE: ./src/utils/findMatchedProjectConfig.ts
 
 
@@ -43172,7 +43178,12 @@ const checkHasSameAsDeployment = async ({ token, maxCount = MAX_DEPLOYMENT_COUNT
         };
     }
     catch (error) {
-        logger.error(`Failed to get deployment status list ${error}`);
+        logger.error({
+            message: `Failed to get deployment status list ${error}`,
+            error: error instanceof Error ? error.message : String(error),
+            deployEnvironment,
+            deployCommitSha,
+        });
         return {
             isError: true,
             isSameAsDeployment: null,
@@ -43225,8 +43236,14 @@ const getPullRequestInfo = async (token, pullRequestNumber) => {
         });
         return pullRequestData;
     }
-    catch {
-        logger.setFailed(`Failed to retrieve PR info`);
+    catch (error) {
+        logger.error({
+            message: `Failed to get pull request info ${error}`,
+            error: error instanceof Error ? error.message : String(error),
+            owner,
+            repo,
+            pull_number: pullRequestNumber,
+        });
         return null;
     }
 };
@@ -43257,8 +43274,14 @@ const getPullRequestFromCommit = async (token) => {
         logger.info('No associated PR found for this commit.');
         return null;
     }
-    catch {
-        logger.setFailed(`Failed to retrieve PR from commit`);
+    catch (error) {
+        logger.error({
+            message: `Failed to retrieve PR from commit: ${error}`,
+            error: error instanceof Error ? error.message : String(error),
+            owner,
+            repo,
+            sha,
+        });
         return null;
     }
 };
@@ -43300,6 +43323,7 @@ const getPullRequestNumber = async (token) => {
     logger.info(`No matching PR found with head SHA. Falling back to commit API.`);
     const pullRequestNumberFromCommit = await getPullRequestFromCommit(token).then((pr) => pr?.number);
     if (!pullRequestNumberFromCommit) {
+        logger.error(`No PR found associated with commit SHA: ${sha}`);
         throw new Error(`Unable to find PR associated with commit SHA: ${sha}`);
     }
     logger.info(`Found PR number: ${pullRequestNumberFromCommit} using commit API.`);
@@ -43450,92 +43474,229 @@ const sendSlackMessage = async ({ webhookURL, payload }) => {
 
 const run = async () => {
     try {
-        logger.info('Start to run the action.');
+        logger.info({ message: 'Release Notification Action started' });
         /**
          * [INFO] 해당 워크플로우에 필요한 인풋을 가져옵니다.
          * 내부적으로 core.getInput을 사용하여 필요한 인풋을 가져오며, 필요한 인풋이 없을 경우 에러를 발생시킵니다.
          * 만약 필수값이 없는 경우 null을 반환합니다.
          * **/
+        logger.info({ message: 'Fetching GitHub Core Input...' });
         const inputList = getGithubCoreInput();
         if (!inputList) {
+            logger.error({ message: 'Failed to fetch GitHub Core Input' });
             return;
         }
         const { token, extractionStartPoint, slackWebhookURL, extractionEndPoint, projectConfig, autoLinkConfig } = inputList;
+        logger.info({
+            message: 'GitHub Core Input fetched successfully',
+            hasToken: !!token,
+            extractionStartPoint,
+            extractionEndPoint,
+            hasSlackWebhookURL: !!slackWebhookURL,
+            hasProjectConfig: !!projectConfig,
+            hasAutoLinkConfig: !!autoLinkConfig,
+        });
         /**------------------------ INPUT 검증 종료 -----------------------------**/
+        logger.info({ message: 'Fetching deployment information...' });
         const { deploymentStatus, deployCommitSha } = getDeployInformationFromContext();
+        logger.info({
+            message: 'Deployment information fetched successfully',
+            deploymentStatus,
+            deployCommitSha,
+            hasDeployCommitSha: !!deployCommitSha,
+        });
         // [INFO] 배포 상태가 DEPLOY_SUCCEED_STATUS_LIST 와 DEPLOY_ERROR_STATUS_LIST 에 해당 되지 않을 경우 로딩 상태로 취급 하고 종료합니다.
         const isPendingStatus = ![...DEPLOY_SUCCEED_STATUS_LIST, ...DEPLOY_ERROR_STATUS_LIST].includes(deploymentStatus);
+        logger.info({
+            message: 'Validating deployment status',
+            deploymentStatus,
+            isPendingStatus,
+            successStatusList: DEPLOY_SUCCEED_STATUS_LIST,
+            errorStatusList: DEPLOY_ERROR_STATUS_LIST,
+        });
         if (isPendingStatus) {
-            logger.info(`Deployment is loading. ${deploymentStatus}`);
+            logger.info({ message: `Deployment is in progress. Status: ${deploymentStatus}` });
             return;
         }
         /**------------------------ 배포 상태 검증 종료 -----------------------------**/
+        logger.info({ message: 'Fetching Pull Request number...' });
         const pullRequestNumber = await getPullRequestNumber(token);
+        logger.info({
+            message: 'Pull Request number query result',
+            pullRequestNumber,
+            hasPullRequestNumber: !!pullRequestNumber,
+        });
         if (!pullRequestNumber) {
-            logger.error('Could not find the Pull Request number');
+            logger.error({ message: 'Could not find Pull Request number' });
             return;
         }
         // [INFO] 해당 PR의 정보를 가져옵니다.
+        logger.info({ message: `Fetching Pull Request information... (PR #${pullRequestNumber})` });
         const pullRequestInfo = await getPullRequestInfo(token, pullRequestNumber);
         if (!pullRequestInfo) {
-            logger.error('Could not find the Pull Request information.');
+            logger.error({ message: `Could not find Pull Request information. (PR #${pullRequestNumber})` });
             return;
         }
         const { title, body, html_url, assignees, merge_commit_sha, user, base: { ref: baseBranchName }, } = pullRequestInfo;
+        logger.info({
+            message: 'Pull Request information fetched successfully',
+            title,
+            hasBody: !!body,
+            bodyLength: body?.length || 0,
+            html_url,
+            assigneesCount: assignees?.length || 0,
+            assignees: assignees?.map((a) => a.login) || [],
+            merge_commit_sha,
+            hasMergeCommitSha: !!merge_commit_sha,
+            user: user?.login,
+            baseBranchName,
+        });
         // [ERROR] PR의 body가 없을 경우 에러를 발생시킵니다.
         if (!body) {
-            logger.error('No body provided.');
+            logger.error({ message: 'No PR body provided' });
             return;
         }
         // [INFO] PR의 body에서 divideSection에 해당하는 섹션을 추출합니다.
+        logger.info({
+            message: 'Starting section extraction...',
+            extractionStartPoint,
+            extractionEndPoint,
+            bodyPreview: body.substring(0, 200) + (body.length > 200 ? '...' : ''),
+        });
         const extractedSection = extractSection(body, extractionStartPoint, extractionEndPoint);
+        logger.info({
+            message: 'Section extraction result',
+            hasExtractedSection: !!extractedSection,
+            extractedSectionLength: extractedSection?.length || 0,
+            extractedSectionPreview: extractedSection?.substring(0, 200) + (extractedSection && extractedSection.length > 200 ? '...' : ''),
+        });
         // [ERROR] 추출된 섹션이 없을 경우 에러를 발생시킵니다.
         if (!extractedSection) {
-            logger.error('Could not find the section.');
+            logger.error({
+                message: 'Could not find the section to extract',
+                extractionStartPoint,
+                extractionEndPoint,
+                bodyLength: body.length,
+            });
             return;
         }
         // 머지가 되지 않았더라면, 실행 시키지 않습니다.
+        logger.info({
+            message: 'Validating merge status...',
+            merge_commit_sha,
+            hasMergeCommitSha: !!merge_commit_sha,
+        });
         if (!merge_commit_sha) {
-            logger.error(`#${pullRequestNumber} - This Pull Request was Not Merge`);
+            logger.error({ message: `PR #${pullRequestNumber} - This Pull Request was not merged` });
             return;
         }
         // 머지 커밋과 deploy sha 와 같지 않으면 실행 시키지 않습니다.
+        logger.info({
+            message: 'Comparing commit SHAs...',
+            merge_commit_sha,
+            deployCommitSha,
+            isMatching: merge_commit_sha === deployCommitSha,
+        });
         if (merge_commit_sha !== deployCommitSha) {
-            logger.error(`This Sha was Not Same deploySha \n merge_commit_sha: ${merge_commit_sha} \n deploy_sha:${deployCommitSha}`);
+            logger.error({
+                message: 'Merge commit SHA does not match deployment SHA',
+                merge_commit_sha,
+                deployCommitSha,
+            });
             return;
         }
         /**
          * 상위에서 merge_commit_sha 와 deployCommitSha 가 같은지 확인하였으므로, deployCommitSha 는 무조건 존재합니다.
          * 중복된 값이 2개 이상이라면 이미 배포알림이 진행되었으므로, 실행하지 않습니다.
          * **/
+        logger.info({ message: 'Checking for duplicate deployment...' });
         const hasSameAsDeployment = await checkHasSameAsDeployment({ token });
+        logger.info({
+            message: 'Duplicate deployment check result',
+            isError: hasSameAsDeployment.isError,
+            isSameAsDeployment: hasSameAsDeployment.isSameAsDeployment,
+        });
         if (hasSameAsDeployment.isError) {
-            logger.error('Failed to check the deployment status');
+            logger.error({ message: 'Failed to check deployment status' });
             return;
         }
         if (hasSameAsDeployment.isSameAsDeployment) {
-            logger.error(`This Sha was Same deploySha \n merge_commit_sha: ${merge_commit_sha} \n deploy_sha:${deployCommitSha}`);
+            logger.error({
+                message: 'Notification for this deployment has already been processed',
+                merge_commit_sha,
+                deployCommitSha,
+            });
             return;
         }
+        logger.info({ message: 'Parsing project configuration...' });
         const parsedProjectConfig = safeJsonParse(projectConfig);
         if (!parsedProjectConfig) {
-            logger.error('JSON parsing error occurred,');
+            logger.error({
+                message: 'JSON parsing error occurred, please check the projectConfig input',
+                projectConfig,
+                projectConfigType: typeof projectConfig,
+            });
             return;
         }
+        logger.info({
+            message: 'Project configuration parsed successfully',
+            configCount: parsedProjectConfig.length,
+            configs: parsedProjectConfig.map((config) => ({
+                projectName: config.projectName,
+                stage: config.stage,
+                triggerBranch: config.triggerBranch,
+                successReleaseTitle: config.successReleaseTitle,
+                failedReleaseTitle: config.failedReleaseTitle,
+            })),
+        });
+        logger.info({
+            message: 'Finding matching project configuration...',
+            commitSha: merge_commit_sha,
+            baseBranchName,
+            availableConfigsCount: parsedProjectConfig.length,
+        });
         const matchedProject = await findMatchedProjectConfig({
             token,
             parsedProjectConfig,
             commitSha: merge_commit_sha,
             baseBranchName,
         });
+        logger.info({
+            message: 'Matching project result',
+            hasMatchedProject: !!matchedProject,
+            matchedProject: matchedProject
+                ? {
+                    projectName: matchedProject.projectName,
+                    stage: matchedProject.stage,
+                    triggerBranch: matchedProject.triggerBranch,
+                    successReleaseTitle: matchedProject.successReleaseTitle,
+                    failedReleaseTitle: matchedProject.failedReleaseTitle,
+                }
+                : null,
+        });
         // [INFO] 해당 프로젝트 설정이 없을 경우 종료합니다.
         if (!matchedProject) {
-            logger.error('No matching Condition found in the project settings');
+            logger.error({
+                message: 'No matching condition found in the project settings',
+                baseBranchName,
+                commitSha: merge_commit_sha,
+                availableConfigs: parsedProjectConfig.length,
+            });
             return;
         }
         const { issue: { number }, } = getGithubContext();
+        logger.info({
+            message: 'GitHub Context information',
+            issueNumber: number,
+        });
         const safeAssignees = assignees?.map((assignee) => assignee.login) ?? [];
         const pullRequestOwner = [...new Set([user?.login, ...safeAssignees])].join(', ');
+        logger.info({
+            message: 'Pull Request owner information',
+            user: user?.login,
+            assignees: safeAssignees,
+            pullRequestOwner,
+        });
         const pullRequestInformation = {
             title: title,
             url: html_url,
@@ -43544,43 +43705,99 @@ const run = async () => {
             baseBranchName: baseBranchName,
         };
         logger.info({
+            message: 'Pull Request information summary',
             pullRequestInformation,
         });
         // [INFO] 배포 상태가 DEPLOY_ERROR_STATUS_LIST 에 해당 되는 경우 배포 실패 메시지를 보내고 종료합니다.
-        if (DEPLOY_ERROR_STATUS_LIST.includes(deploymentStatus)) {
-            logger.info(`Deployment was Failure. ${deploymentStatus}`);
-            await sendSlackMessage({
-                webhookURL: slackWebhookURL,
-                payload: buildSlackMessage({
+        const isFailureStatus = DEPLOY_ERROR_STATUS_LIST.includes(deploymentStatus);
+        logger.info({
+            message: 'Final deployment status check',
+            deploymentStatus,
+            isFailureStatus,
+            isSuccessStatus: DEPLOY_SUCCEED_STATUS_LIST.includes(deploymentStatus),
+        });
+        if (isFailureStatus) {
+            logger.info({ message: `Deployment failed. Status: ${deploymentStatus}` });
+            try {
+                logger.info({
+                    message: 'Sending failure notification to Slack...',
+                    webhookURL: slackWebhookURL,
                     titleMessage: matchedProject.failedReleaseTitle,
-                    pullRequest: pullRequestInformation,
-                    deployStatus: 'fail',
-                }),
-            });
+                });
+                await sendSlackMessage({
+                    webhookURL: slackWebhookURL,
+                    payload: buildSlackMessage({
+                        titleMessage: matchedProject.failedReleaseTitle,
+                        pullRequest: pullRequestInformation,
+                        deployStatus: 'fail',
+                    }),
+                });
+                logger.info({ message: 'Failure notification sent to Slack successfully' });
+            }
+            catch (error) {
+                logger.error({
+                    message: 'Failed to send failure notification to Slack',
+                    error: error.message,
+                    errorStack: error.stack,
+                });
+            }
             return;
         }
+        logger.info({ message: 'Parsing AutoLink configuration...' });
         const parsedAutoLinkConfig = (autoLinkConfig ? safeJsonParse(autoLinkConfig) : []) ?? [];
-        logger.info(autoLinkConfig ? { ...parsedAutoLinkConfig } : 'AutoLinkConfig is not provided');
+        logger.info({
+            message: 'AutoLink configuration parsed successfully',
+            hasAutoLinkConfig: !!autoLinkConfig,
+            parsedAutoLinkCount: parsedAutoLinkConfig.length,
+            parsedAutoLinkConfig: autoLinkConfig ? parsedAutoLinkConfig : 'AutoLinkConfig not provided',
+        });
         try {
             // [INFO] Slack 성공 메시지를 보냅니다.
-            logger.info(`Sending a message to Slack...${slackWebhookURL}`);
+            logger.info({
+                message: 'Sending success notification to Slack...',
+                webhookURL: slackWebhookURL,
+                titleMessage: matchedProject.successReleaseTitle,
+                extractedSectionLength: extractedSection.length,
+                autoLinkConfigCount: parsedAutoLinkConfig.length,
+            });
+            const autoLinkedContent = buildAutoLink(extractedSection, parsedAutoLinkConfig);
+            const slackFormattedContent = (0,slack_messages.githubToSlack)(autoLinkedContent);
+            logger.info({
+                message: 'Message content processing completed',
+                originalLength: extractedSection.length,
+                autoLinkedLength: autoLinkedContent.length,
+                slackFormattedLength: slackFormattedContent.length,
+                autoLinkedPreview: autoLinkedContent.substring(0, 200) + (autoLinkedContent.length > 200 ? '...' : ''),
+            });
             await sendSlackMessage({
                 webhookURL: slackWebhookURL,
                 payload: buildSlackMessage({
                     titleMessage: matchedProject.successReleaseTitle,
                     pullRequest: {
                         ...pullRequestInformation,
-                        body: (0,slack_messages.githubToSlack)(buildAutoLink(extractedSection, parsedAutoLinkConfig)),
+                        body: slackFormattedContent,
                     },
                 }),
             });
-            logger.info(`Successfully sent a message to Slack: ${slackWebhookURL}`);
+            logger.info({ message: `Success notification sent to Slack successfully: ${slackWebhookURL}` });
         }
         catch (error) {
-            logger.error(`Failed to send a message to Slack: ${error.message}`);
+            logger.error({
+                message: 'Failed to send success notification to Slack',
+                error: error.message,
+                errorStack: error.stack,
+                webhookURL: slackWebhookURL,
+            });
         }
+        logger.info({ message: 'Release Notification Action completed successfully' });
     }
     catch (error) {
+        logger.error({
+            message: 'Critical error occurred during Action execution',
+            error: error.message,
+            errorStack: error.stack,
+            errorName: error.name,
+        });
         logger.setFailed(`Action failed: ${error.message}`);
     }
 };
